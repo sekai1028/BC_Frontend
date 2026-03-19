@@ -1,0 +1,5 @@
+# SPA: serve index.html for all routes so /admin, /play, /login, etc. work on direct load or refresh
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

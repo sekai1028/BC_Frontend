@@ -1,64 +1,100 @@
 import { useState, useEffect } from 'react'
 import { useGameStore } from '../store/gameStore'
+import { playAssetMp3, ASSET } from '../utils/audio'
+import warnSvg from '../public/asset/warn.svg'
 
+/** GDD 2.7.2: Purple headline overlay; typewriter 15ms/char; 7s freeze; entrance/exit animations */
 export default function HeadlineNotification() {
+  const headlineText = useGameStore((s) => s.headlineText)
+  const headlineExiting = useGameStore((s) => s.headlineExiting)
   const [displayedText, setDisplayedText] = useState('')
-  const [showEKG, setShowEKG] = useState(true)
-  
-  const headline = 'SYNDICATE TRACE DETECTED // SIGNAL INTENSITY RISING'
+  const text = headlineText || 'SYNDICATE TRACE DETECTED // SIGNAL INTENSITY RISING'
 
+  // Typewriter: 15ms per character (superfast)
   useEffect(() => {
-    // Typewriter effect
+    setDisplayedText('')
     let index = 0
     const interval = setInterval(() => {
-      if (index < headline.length) {
-        setDisplayedText(headline.slice(0, index + 1))
+      if (index < text.length) {
+        setDisplayedText(text.slice(0, index + 1))
         index++
-      } else {
-        clearInterval(interval)
-      }
-    }, 15) // 15ms per character
-
+      } else clearInterval(interval)
+    }, 15)
     return () => clearInterval(interval)
-  }, [])
+  }, [text])
 
+  // GDD 2.7.2: Heartbeat 0–4s 1500ms, 4–6s 700ms; EKG spike syncs to heartbeat; play Heart-Beat-6-sec when headline shows
   useEffect(() => {
-    // EKG heartbeat
-    const interval = setInterval(() => {
-      setShowEKG((prev) => !prev)
-    }, 700)
-    return () => clearInterval(interval)
-  }, [])
+    if (headlineText) playAssetMp3(ASSET.heartbeat)
+  }, [headlineText])
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <div className="bg-bunker-purple/90 border-2 border-bunker-purple-light p-8 rounded-lg max-w-2xl">
-        <div className="relative">
-          {/* Scanner line */}
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-white animate-pulse" 
-               style={{ 
-                 animation: 'scanline 3s linear infinite',
-                 boxShadow: '0 0 10px #FFFFFF'
-               }} />
-          
-          {/* Headline text */}
-          <div className="text-bunker-yellow text-xl font-bold mb-4 font-mono">
-            {displayedText}
-            <span className="animate-pulse">|</span>
+    <div
+      id="headline-notification"
+      className="fixed inset-0 flex items-center justify-center z-[45] pointer-events-none"
+      style={{
+        transition: 'opacity 0.1s ease-out',
+        opacity: headlineExiting ? 0 : 1,
+      }}
+      aria-hidden
+    >
+      <div
+        className="oracle-intel-panel rounded-xl max-w-2xl w-full mx-4 overflow-hidden border-2"
+        style={{
+          backgroundColor: '#000000',
+          borderColor: '#BF00FF',
+          boxShadow: '0 0 0 1px #BF00FF, 0 0 20px rgba(191,0,255,0.5), 0 0 40px rgba(191,0,255,0.25)',
+          animation: 'headline-enter 0.2s ease-out forwards',
+        }}
+      >
+        {/* Header: small warn icon + ORACLE_INTEL // BREACH_OVERRIDE + status dot */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-[#BF00FF]/40 gap-2">
+          <img
+            src={warnSvg}
+            alt=""
+            className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 opacity-90"
+            style={{ filter: 'drop-shadow(0 0 4px #BF00FF)' }}
+            aria-hidden
+          />
+          <span
+            className="font-mono text-xs sm:text-sm font-bold tracking-widest uppercase truncate min-w-0 flex-1"
+            style={{ color: '#BF00FF' }}
+          >
+            ORACLE_INTEL // BREACH_OVERRIDE
+          </span>
+          <div
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+            style={{
+              backgroundColor: '#CCFF00',
+              boxShadow: '0 0 10px #CCFF00, 0 0 20px rgba(204,255,0,0.6)',
+              animation: 'sync-blink 1s ease-in-out infinite',
+            }}
+          />
+        </div>
+
+        {/* Main: headline only — more vertical space for larger text */}
+        <div className="px-4 sm:px-6 py-6 sm:py-10 text-center">
+          {/* Primary alert: solid white, larger, readable */}
+          <div
+            className="font-bold text-lg sm:text-xl md:text-2xl uppercase tracking-wide leading-snug text-center text-white"
+            style={{
+              fontFamily: 'system-ui, sans-serif',
+              textShadow: '0 0 12px rgba(255,255,255,0.5), 0 0 24px rgba(191,0,255,0.2)',
+            }}
+          >
+            [SYSTEM_ALERT]: {displayedText}
+            <span className="animate-pulse opacity-90 ml-0.5">|</span>
           </div>
-          
-          {/* EKG line */}
-          <div className="mt-4 h-1 bg-bunker-green relative overflow-hidden">
-            <div 
-              className={`absolute top-0 left-0 w-full h-full bg-bunker-green transition-opacity ${showEKG ? 'opacity-100' : 'opacity-30'}`}
-              style={{
-                backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10px, #00FF41 10px, #00FF41 20px)'
-              }}
-            />
-          </div>
-          
-          {/* Sync light */}
-          <div className="absolute top-2 right-2 w-3 h-3 bg-bunker-yellow rounded-full animate-pulse" />
+        </div>
+
+        {/* Footer: TERMINAL LOCKED dimmed left; PROCESSING bright neon purple right */}
+        <div className="flex items-center justify-between px-4 py-2 border-t border-[#BF00FF]/30">
+          <span className="font-mono text-[10px] sm:text-xs tracking-wider uppercase text-white/50">
+            TERMINAL LOCKED
+          </span>
+          <span className="font-mono text-[10px] sm:text-xs tracking-wider" style={{ color: '#BF00FF' }}>
+            ● PROCESSING ENCRYPTED FEED...
+          </span>
         </div>
       </div>
     </div>

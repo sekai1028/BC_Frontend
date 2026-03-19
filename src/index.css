@@ -3,16 +3,27 @@
 @tailwind utilities;
 
 @layer base {
+  /* Use Space Grotesk for all text site-wide */
+  *, *::before, *::after {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
   html, body {
     scrollbar-width: none;
     -ms-overflow-style: none;
+    overflow: hidden;
+    height: 100%;
   }
   html::-webkit-scrollbar, body::-webkit-scrollbar {
     display: none;
   }
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
   body {
-    @apply text-white font-mono;
-    font-family: 'VT323', 'Courier New', monospace;
+    @apply text-white font-sans antialiased;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 16px;
     background-image: url('./public/asset/background.png');
     background-size: cover;
     background-position: center;
@@ -20,9 +31,120 @@
     background-color: #000;
     min-height: 100vh;
   }
+  /* Keep root at 16px so terminal, header, sidebars share one proportional scale */
+  html { font-size: 16px; }
 }
 
 @layer utilities {
+  /* Hide number input spin buttons (Chrome, Safari, Firefox) */
+  .input-no-spinner::-webkit-inner-spin-button,
+  .input-no-spinner::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .input-no-spinner {
+    -moz-appearance: textfield;
+  }
+  /* Glassmorphism: frosted glass with strong blur and clear hierarchy */
+  .glass {
+    background: rgba(9, 16, 13, 0.62);
+    backdrop-filter: blur(12px) saturate(1.08);
+    -webkit-backdrop-filter: blur(12px) saturate(1.08);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow:
+      0 6px 22px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .glass-panel {
+    background: rgba(10, 20, 15, 0.7);
+    backdrop-filter: blur(14px) saturate(1.08);
+    -webkit-backdrop-filter: blur(14px) saturate(1.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 28px rgba(0, 0, 0, 0.36),
+      inset 1px 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .glass-card {
+    background: rgba(10, 20, 15, 0.66);
+    backdrop-filter: blur(10px) saturate(1.05);
+    -webkit-backdrop-filter: blur(10px) saturate(1.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 14px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .glass-strong {
+    background: rgba(7, 14, 10, 0.78);
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 26px rgba(0, 0, 0, 0.36),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .glass-inset {
+    background: rgba(12, 20, 16, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+  /* Accent panel with subtle green edge (bunker theme) */
+  .glass-green {
+    background: rgba(8, 24, 14, 0.78);
+    backdrop-filter: blur(18px) saturate(1.15);
+    -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    border: 1px solid rgba(0, 255, 65, 0.18);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(0, 255, 65, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .glass-hover {
+    transition: box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+  }
+  .glass-hover:hover {
+    transform: none;
+    box-shadow:
+      0 8px 26px rgba(0, 0, 0, 0.36),
+      0 0 0 1px rgba(255, 255, 255, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .glass-divider {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Consistent app padding: same size everywhere (header, sidebars, main) */
+  .app-pad {
+    padding: 0.75rem; /* 12px / p-3 */
+  }
+  @media (min-width: 640px) {
+    .app-pad {
+      padding: 1rem; /* 16px / p-4 */
+    }
+  }
+
+  /* Mobile status style: dark fields, light grey borders/text for inactive, yellow-green for values, green for active */
+  .mobile-status-field {
+    background: #0d0d0d;
+    border: 1px solid rgba(156, 163, 175, 0.5);
+    border-radius: 0.75rem;
+  }
+  .mobile-status-value {
+    color: #c6ff00;
+    text-shadow: 0 0 10px rgba(198, 255, 0, 0.4);
+  }
+  .mobile-status-btn-inactive {
+    background: #1f1f1f;
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.4);
+  }
+  .mobile-status-btn-active {
+    background: #0f1a14;
+    color: #00FF41;
+    border: 1px solid #00FF41;
+  }
+
   .text-glow-green {
     text-shadow: 0 0 10px #00FF41, 0 0 20px #00FF41, 0 0 30px #00FF41;
   }
@@ -37,6 +159,11 @@
   
   .screen-shake {
     animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+  }
+
+  /* GDD 2.7.3: Crash screen shake on game container — 0.3s */
+  .crash-shake {
+    animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
   }
   
   @keyframes shake {
@@ -55,6 +182,14 @@
     50% { opacity: 0.7; }
   }
 
+  .breathing-glow {
+    animation: breathing-glow 2.2s ease-in-out infinite;
+  }
+  @keyframes breathing-glow {
+    0%, 100% { box-shadow: 0 6px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 20px rgba(92,255,122,0.4); }
+    50% { box-shadow: 0 6px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 32px rgba(92,255,122,0.7); }
+  }
+
   /* Hide scrollbar but keep scroll functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -62,5 +197,333 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* GDD 2.7.2: Headline overlay — scanner line sweep top to bottom */
+  @keyframes scanner-sweep {
+    0% { top: 0%; }
+    100% { top: 100%; }
+  }
+  /* Sync status 1s opacity blink */
+  @keyframes sync-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  /* Headline entrance: scale 0.8 -> 1, 0.2s ease-out */
+  @keyframes headline-enter {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* GDD 2.7.1: Top of chart rotating title — pulse (breathing terminal) and fade on change */
+  @keyframes title-pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+  @keyframes title-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .title-rotating-pulse {
+    animation: title-pulse 3s ease-in-out infinite;
+  }
+  .title-rotating-fade {
+    animation: title-fade-in 1s ease-out forwards;
+  }
+
+  /* GDD 2.7.3: Crash LED fast blink (0.4s) — system breach */
+  @keyframes crash-led-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  /* GDD 2.7.3: Flatline static jitter */
+  @keyframes flatline-jitter {
+    0%, 100% { opacity: 1; transform: translateX(0); }
+    25% { opacity: 0.92; transform: translateX(0.5px); }
+    50% { opacity: 1; transform: translateX(-0.5px); }
+    75% { opacity: 0.95; transform: translateX(0.3px); }
+  }
+
+  /* GDD 2.7.3 / Section 13: Holophone — Ad button zip-in from center after crash minimal */
+  .holophone-ad-zip {
+    animation: holophone-ad-zip 0.35s ease-out forwards;
+  }
+  @keyframes holophone-ad-zip {
+    from {
+      opacity: 0;
+      transform: translateX(40px) scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+
+  /* GDD 2.5.1: Red-line — sickly red, vibrating key UI when in debt / liquidated */
+  @keyframes red-line-vibrate {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-0.8px, 0.4px); }
+    50% { transform: translate(0.6px, -0.3px); }
+    75% { transform: translate(-0.4px, -0.5px); }
+  }
+  .red-line .red-line-target {
+    color: #cc4444 !important;
+    text-shadow: 0 0 10px rgba(204, 68, 68, 0.7), 0 0 20px rgba(180, 40, 40, 0.5) !important;
+    animation: red-line-vibrate 0.08s ease-in-out infinite;
+  }
+
+  /* GDD 2.6: Radial ripple from point of contact on HOLD/FOLD */
+  .button-ripple {
+    animation: button-ripple 0.45s ease-out forwards;
+  }
+  @keyframes button-ripple {
+    0% { transform: scale(0); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+
+  /* GDD 2.6: 0.1s screen jitter on HOLD/FOLD press (haptic mimicry) */
+  .button-jitter {
+    animation: button-jitter 0.1s ease-out both;
+  }
+  @keyframes button-jitter {
+    0% { transform: translate(0, 0); }
+    33% { transform: translate(1px, -0.5px); }
+    66% { transform: translate(-0.5px, 1px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* GDD 2.6: Success banner — drop from top, 20px overshoot, spring back */
+  .success-banner-enter {
+    animation: success-banner-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes success-banner-enter {
+    0% { transform: translateY(-100%); opacity: 0.9; }
+    70% { transform: translateY(20px); opacity: 1; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  /* GDD 2.7.4: Tactical Retreat — subtle amber pulse (no confetti) */
+  .tactical-retreat-banner {
+    animation: tactical-retreat-pulse 0.6s ease-out 1;
+  }
+  @keyframes tactical-retreat-pulse {
+    0% { box-shadow: 0 0 20px rgba(255,140,0,0.3); }
+    50% { box-shadow: 0 0 32px rgba(255,191,0,0.5); }
+    100% { box-shadow: 0 0 20px rgba(255,140,0,0.3); }
+  }
+
+  /* GDD 2.6: Gold zip — coins from center to wallet */
+  .gold-coin-zip {
+    animation-name: gold-coin-zip;
+  }
+  @keyframes gold-coin-zip {
+    0% { transform: translate(0, 0); opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translate(var(--tx, 0), var(--ty, 0)); opacity: 0; }
+  }
+
+  /* GDD 2.6: Regret toast entrance */
+  .regret-toast {
+    animation: regret-toast-in 0.3s ease-out;
+  }
+  @keyframes regret-toast-in {
+    from { opacity: 0; transform: translate(-50%, 8px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+
+  /* GDD 2.6: Crash — chromatic aberration (red/blue channel separation) for a few frames */
+  /* GDD 2.7.5: Red state — pulsing red vignette + subtle screen jitter */
+  .margin-red-overlay {
+    animation: margin-red-pulse 1.2s ease-in-out infinite, margin-debt-jitter 0.12s ease-in-out infinite;
+  }
+  /* GDD Chart State 8: Deep Red Zone — slow dying pulse when multiplier deep negative */
+  .margin-red-overlay-deep {
+    background: rgba(60, 0, 0, 0.35) !important;
+    animation: margin-red-pulse-deep 2.5s ease-in-out infinite, margin-debt-jitter 0.12s ease-in-out infinite;
+  }
+  @keyframes margin-red-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.92; }
+  }
+  @keyframes margin-red-pulse-deep {
+    0%, 100% { opacity: 1; box-shadow: inset 0 0 80px rgba(80, 0, 0, 0.25); }
+    50% { opacity: 0.88; box-shadow: inset 0 0 120px rgba(100, 0, 0, 0.4); }
+  }
+  @keyframes margin-debt-jitter {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(0.5px, -0.3px); }
+  }
+
+  /* GDD 2.8.2: Bunker icon — slow gold pulse when Rank 1+ and registered */
+  .bunker-pulse {
+    animation: bunker-pulse 2.5s ease-in-out infinite;
+  }
+  .bunker-pulse img {
+    filter: drop-shadow(0 0 8px rgba(255,215,0,0.6));
+  }
+  @keyframes bunker-pulse {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; }
+  }
+
+  .crash-chromatic-red {
+    animation: crash-chromatic-red 0.6s ease-out forwards;
+  }
+  .crash-chromatic-blue {
+    animation: crash-chromatic-blue 0.6s ease-out forwards;
+  }
+  @keyframes crash-chromatic-red {
+    0% { opacity: 0.35; transform: translateX(-12px); }
+    100% { opacity: 0; transform: translateX(0); }
+  }
+  @keyframes crash-chromatic-blue {
+    0% { opacity: 0.35; transform: translateX(12px); }
+    100% { opacity: 0; transform: translateX(0); }
+  }
+
+  /* Shared app font — use on Terminal and LeftSidebar so both use same family */
+  .app-font,
+  .app-font *,
+  .app-font *::before,
+  .app-font *::after {
+    font-family: 'Space Grotesk', system-ui, sans-serif !important;
+  }
+
+  /* Terminal & Global Chat typography — design specs */
+  .terminal-status-message {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 8.16px;
+    line-height: 10.2px;
+    letter-spacing: 1.02px;
+    vertical-align: middle;
+  }
+  /* Rotating intel bar (MERCY / ADVISORY / etc.) — larger, readable text */
+  .terminal-rotating-intel {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+  }
+  @media (min-width: 640px) {
+    .terminal-rotating-intel { font-size: 13px; }
+  }
+  @media (min-width: 768px) {
+    .terminal-rotating-intel { font-size: 14px; }
+  }
+  .terminal-gold-value {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 11.18px;
+    line-height: 17.4px;
+    letter-spacing: 0;
+    vertical-align: middle;
+  }
+  .terminal-fraction-btn {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 11.18px;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+  .hold-fold-button-text {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 25.79px;
+    line-height: 23.21px;
+    letter-spacing: 1.93px;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+  /* Old HOLD/FOLD design: bold blocky label, hand icon right */
+  .hold-fold-old {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+  .hold-fold-old-label {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 25.79px;
+    line-height: 23.21px;
+    letter-spacing: 1.93px;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+  .global-chat-title {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.25;
+    letter-spacing: 0.72px;
+    vertical-align: middle;
+  }
+  .global-chat-label {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 1.35;
+    letter-spacing: 0.72px;
+    vertical-align: middle;
+  }
+  .global-chat-username {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0;
+    vertical-align: middle;
+  }
+  .global-chat-body {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 1.4;
+    letter-spacing: 0;
+    vertical-align: middle;
+  }
+  .global-chat-timestamp {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    line-height: 1.3;
+    letter-spacing: 0;
+    text-align: right;
+    vertical-align: middle;
+  }
+
+  /* GDD 6.1: Mercy Pot intensity — Level 2 slow pulse, 3 fast pulse, 4 gold+flame, 5 breathing red/gold */
+  .mercy-intensity-2 {
+    animation: mercy-slow-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes mercy-slow-pulse {
+    0%, 100% { opacity: 0.86; box-shadow: 0 5px 15px 0 #00000066, -2px -2px 5px 1px #00000080 inset, 2px 2px 5px 1px #FFFFFF0D inset; }
+    50% { opacity: 1; box-shadow: 0 5px 15px 0 #00000066, -2px -2px 5px 1px #00000080 inset, 2px 2px 5px 1px rgba(0,255,65,0.15) inset, 0 0 12px rgba(0,255,65,0.25); }
+  }
+  .mercy-intensity-3 {
+    animation: mercy-fast-pulse 0.8s ease-in-out infinite;
+  }
+  @keyframes mercy-fast-pulse {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 1; box-shadow: 0 5px 15px 0 #00000066, 0 0 16px rgba(0,255,65,0.4); }
+  }
+  .mercy-intensity-4 {
+    color: #FFD700;
+    animation: mercy-gold-flame 1.2s ease-in-out infinite;
+  }
+  .mercy-intensity-4 .mercy-value { color: #FFD700; text-shadow: 0 0 8px rgba(255,215,0,0.8); }
+  @keyframes mercy-gold-flame {
+    0%, 100% { opacity: 0.95; }
+    50% { opacity: 1; filter: drop-shadow(0 0 6px #FF8C00); }
+  }
+  .mercy-intensity-5 {
+    animation: mercy-breathing-red-gold 1.8s ease-in-out infinite;
+  }
+  .mercy-intensity-5 .mercy-value { animation: mercy-text-breathing 1.8s ease-in-out infinite; }
+  @keyframes mercy-breathing-red-gold {
+    0%, 100% { box-shadow: 0 5px 15px 0 #00000066, inset 0 0 20px rgba(255,0,0,0.08); }
+    50% { box-shadow: 0 5px 15px 0 #00000066, inset 0 0 24px rgba(255,215,0,0.15), 0 0 20px rgba(255,100,0,0.3); }
+  }
+  @keyframes mercy-text-breathing {
+    0%, 100% { color: #21AD55; text-shadow: 0 0 6px rgba(0,255,0,0.5); }
+    50% { color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.8), 0 0 4px rgba(255,100,0,0.5); }
   }
 }
