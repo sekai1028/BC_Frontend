@@ -45,7 +45,7 @@ export default function Gateway() {
         <div className="w-full border-t border-bunker-green/30 pt-6 pb-2 text-center">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-mono font-bold tracking-[0.15em] uppercase text-white">
             <span className="text-white/95">HOLD</span>
-            <span className="text-white/50 mx-1.5">—</span>
+            <span className="text-red-800 mx-1.5">or</span>
             <span className="text-bunker-green">FOLD</span>
           </h1>
           <p className="text-white/50 text-xs sm:text-sm font-mono tracking-widest uppercase mt-3">

@@ -38,11 +38,11 @@ export default function HoldFoldButton({ isRunning, onClick, disabled, showHoldB
 
   /* Old design: HOLD = neon green + dark olive bottom bevel; FOLD = gold-orange gradient + dark gold bottom bevel */
   const holdBg =
-    'linear-gradient(180deg, #00FF41 0%, #00FF41 88%, #1a5c1a 88%, #1a4d1a 100%)'
+    'linear-gradient(180deg, #58FF53 0%, #49F144 58%, #35C92F 100%)'
   const foldBg =
-    'linear-gradient(180deg, #F7D066 0%, #E5A82E 70%, #D99321 85%, #8B6914 85%, #6b5010 100%)'
+    'linear-gradient(180deg, #FFD87A 0%, #F2B73E 58%, #CF8F1E 100%)'
   const breathingBg =
-    'linear-gradient(180deg, #00FF41 0%, #00FF41 88%, #0d3d0d 88%, #0d3d0d 100%)'
+    'linear-gradient(180deg, #6BFF67 0%, #4FF54A 56%, #30C12C 100%)'
 
   const background = disabled
     ? '#3a3a3a'
@@ -57,13 +57,14 @@ export default function HoldFoldButton({ isRunning, onClick, disabled, showHoldB
       ref={buttonRef}
       onClick={handleClick}
       disabled={disabled}
-      className={`hold-fold-old relative overflow-hidden min-w-[100px] sm:min-w-[160px] w-full max-w-[200px] py-2.5 sm:py-4 transition-all duration-100 flex items-center justify-between px-4 sm:px-6 shrink-0 text-black font-bold uppercase ${showBreathing ? 'breathing-glow' : ''} ${className ?? ''}`}
+      className={`hold-fold-old relative overflow-hidden min-w-[110px] sm:min-w-[170px] w-full max-w-[220px] h-[56px] sm:h-[68px] transition-all duration-100 flex items-center justify-between px-5 sm:px-7 shrink-0 text-black font-bold uppercase border ${showBreathing ? 'breathing-glow' : ''} ${className ?? ''}`}
       style={{
-        borderRadius: 10,
+        borderRadius: 12,
         background,
+        borderColor: isRunning ? 'rgba(255, 214, 122, 0.7)' : 'rgba(79, 245, 74, 0.55)',
         boxShadow: isRunning
-          ? '0 4px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)'
-          : '0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+          ? '0 8px 22px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.25)'
+          : '0 8px 22px rgba(0,0,0,0.28), 0 0 14px rgba(79,245,74,0.2), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.22)',
         transform: isPressed ? 'scale(0.97)' : 'scale(1)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
@@ -81,12 +82,14 @@ export default function HoldFoldButton({ isRunning, onClick, disabled, showHoldB
           aria-hidden
         />
       )}
-      <span className="hold-fold-old-label">{isRunning ? 'FOLD' : 'HOLD'}</span>
+      <span className="font-extrabold font-mono text-[34px] sm:text-[40px] leading-none tracking-[0.12em] drop-shadow-[0_1px_0_rgba(255,255,255,0.15)]">
+        {isRunning ? 'FOLD' : 'HOLD'}
+      </span>
       <img
         src={buttonHand}
         alt=""
-        className="w-5 h-5 sm:w-6 sm:h-6 opacity-90"
-        style={{ filter: 'brightness(0)' }}
+        className="w-5 h-5 sm:w-6 sm:h-6 opacity-80"
+        style={{ filter: 'brightness(0) contrast(1.1)' }}
         aria-hidden
       />
     </button>

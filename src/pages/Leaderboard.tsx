@@ -96,8 +96,8 @@ export default function Leaderboard() {
 
   return (
     <div className="h-full min-h-0 w-full overflow-y-auto overflow-x-hidden scrollbar-hide">
-      <div className="w-full max-w-6xl mx-auto lg:p-6 pb-12">
-        <div className="glass-green rounded-2xl p-6 sm:p-8 lg:p-10">
+      <div className="w-full px-1 sm:px-2 lg:px-0 pb-12">
+        <div className="glass-green rounded-2xl p-5 sm:p-6 lg:p-7">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-bunker-green mb-2 tracking-tight">Leaderboard</h1>
@@ -127,7 +127,7 @@ export default function Leaderboard() {
                 <button
                   type="button"
                   onClick={() => goToSort('biggestLoss')}
-                  className={`box-border flex-1 min-w-0 w-full xs:w-auto px-4 sm:px-5 py-2.5 font-mono text-xs sm:text-sm font-medium rounded-xl transition-colors border shrink-0 ${sort === 'biggestLoss' ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.15)]' : 'text-white/70 hover:text-white hover:bg-white/10 border-transparent'}`}
+                  className={`box-border flex-1 min-w-0 w-full xs:w-auto px-4 sm:px-5 py-2.5 font-mono text-xs sm:text-sm font-medium rounded-xl transition-colors border shrink-0 ${sort === 'biggestLoss' ? 'bg-amber-500/15 text-amber-300 border-amber-400/40 shadow-[0_0_12px_rgba(251,191,36,0.15)]' : 'text-white/70 hover:text-white hover:bg-white/10 border-transparent'}`}
                 >
                   Graveyard
                 </button>
@@ -154,8 +154,8 @@ export default function Leaderboard() {
                 <col className="w-28 sm:w-32" />
               </colgroup>
               <thead>
-                <tr className={`border-b ${sort === 'biggestLoss' ? 'border-red-500/30' : 'border-bunker-green/30'}`}>
-                  <th className={`py-4 pr-4 font-semibold tabular-nums ${sort === 'biggestLoss' ? 'text-red-400' : 'text-bunker-green'}`}>#</th>
+                <tr className={`border-b ${sort === 'biggestLoss' ? 'border-amber-400/25' : 'border-bunker-green/30'}`}>
+                  <th className={`py-4 pl-3 sm:pl-4 pr-4 font-semibold tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>#</th>
                   <th className="py-4 pr-4 text-white/95 font-semibold">Name</th>
                   <th className="py-4 pr-4 text-white/95 font-semibold tabular-nums">Total siphoned</th>
                   <th className="py-4 pr-4 text-white/95 font-semibold tabular-nums">{sort === 'biggestExtract' ? 'Best run' : sort === 'biggestLoss' ? 'Most lost' : 'Biggest extract'}</th>
@@ -165,7 +165,7 @@ export default function Leaderboard() {
                 {loading ? (
                   Array.from({ length: PAGE_SIZE }).map((_, i) => (
                     <tr key={`skeleton-${i}`} className="border-b border-white/10">
-                      <td className="py-4 pr-4"><span className="inline-block h-5 w-6 bg-white/10 rounded animate-pulse" /></td>
+                      <td className="py-4 pl-3 sm:pl-4 pr-4"><span className="inline-block h-5 w-6 bg-white/10 rounded animate-pulse" /></td>
                       <td className="py-4 pr-4"><span className="inline-block h-5 w-24 bg-white/10 rounded animate-pulse" /></td>
                       <td className="py-4 pr-4"><span className="inline-block h-5 w-16 bg-white/10 rounded animate-pulse" /></td>
                       <td className="py-4 pr-4"><span className="inline-block h-5 w-16 bg-white/10 rounded animate-pulse" /></td>
@@ -178,12 +178,12 @@ export default function Leaderboard() {
                   return (
                     <tr
                       key={`${e.rank}-${e.displayName}-${e.totalSiphoned}-${lossVal}`}
-                      className={`border-b border-white/15 hover:bg-white/8 ${isYou ? (sort === 'biggestLoss' ? 'bg-red-950/20' : 'bg-bunker-green/15') : ''}`}
+                      className={`border-b border-white/15 hover:bg-white/8 ${isYou ? (sort === 'biggestLoss' ? 'bg-amber-950/15' : 'bg-bunker-green/15') : ''}`}
                     >
-                      <td className={`py-4 pr-4 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-red-400' : 'text-bunker-green'}`}>{e.rank}</td>
+                      <td className={`py-4 pl-3 sm:pl-4 pr-4 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>{e.rank}</td>
                       <td className="py-4 pr-4 text-white/95 truncate" title={e.displayName}>{isYou ? `${e.displayName} (You)` : e.displayName}</td>
                       <td className="py-4 pr-4 text-white/95 font-mono tabular-nums">{e.totalSiphoned.toFixed(2)}</td>
-                      <td className={`py-4 pr-4 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-red-400 font-medium' : 'text-white/95'}`}>
+                      <td className={`py-4 pr-4 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300 font-medium' : 'text-white/95'}`}>
                         {sort === 'biggestLoss' ? lossVal.toFixed(2) : e.biggestExtract.toFixed(2)}
                       </td>
                     </tr>
@@ -197,7 +197,7 @@ export default function Leaderboard() {
                     if (inList) return null
                     return (
                       <tr key="you-row" className="border-b border-bunker-green/40 bg-bunker-green/15">
-                        <td className="py-4 pr-4 font-mono tabular-nums text-bunker-green">{myRank.rank}</td>
+                        <td className="py-4 pl-3 sm:pl-4 pr-4 font-mono tabular-nums text-bunker-green">{myRank.rank}</td>
                         <td className="py-4 pr-4 text-white/95 font-medium truncate" title={myRank.displayName || 'You'}>{myRank.displayName || 'You'} (You)</td>
                         <td className="py-4 pr-4 text-white/95 font-mono tabular-nums">{myRank.totalSiphoned.toFixed(2)}</td>
                         <td className="py-4 pr-4 text-white/95 font-mono tabular-nums">{myRank.biggestExtract.toFixed(2)}</td>

@@ -60,12 +60,10 @@ export default function Header() {
     return () => clearInterval(t)
   }, [mercyPot, mercyPotVelocity, mercyPotUpdatedAt])
 
-  // Mercy Pot: 8 decimals total, format 00.00000000 (2 digits before decimal, 8 after)
+  // Mercy Pot: fixed 5 decimals after the dot (e.g. 149.52783)
   const formatMercyPot = (amount: number) => {
     const n = Math.max(0, amount)
-    const s = n.toFixed(8)
-    const [intPart, decPart] = s.split('.')
-    return intPart.padStart(2, '0') + '.' + (decPart ?? '00000000')
+    return n.toFixed(5)
   }
 
   // GDD 8.1: 4 decimal places for micro-ticks (passive gold); 2 for large amounts
@@ -140,7 +138,7 @@ export default function Header() {
             <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-5 object-contain flex-shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="font-display uppercase text-[10px] text-[#2DE85C] tracking-wider">Global Mercy Pot</div>
-              <div className="font-sans font-bold text-xs text-[#21AD55] truncate leading-tight">{formatMercyPot(mercyDisplay)}</div>
+              <div className="font-sans font-bold text-xs text-[#21AD55] leading-tight">{formatMercyPot(mercyDisplay)}</div>
             </div>
           </div>
         </div>
@@ -222,8 +220,8 @@ export default function Header() {
                 <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-6 sm:w-7 sm:h-7 md:w-7 md:h-7 lg:w-8 lg:h-8 xl:w-10 xl:h-10 2xl:w-11 2xl:h-[42px] object-contain" />
               </div>
               <div className="leading-tight min-w-0 flex-1 overflow-hidden text-center">
-                <div className="font-mono uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-xs truncate" style={{ color: '#2DE85C', fontWeight: 500, letterSpacing: '0.06em', lineHeight: 1.2 }}>SSC · GLOBAL MERCY POT</div>
-                <div className="font-extrabold font-mono tabular-nums mercy-value text-[10px] sm:text-xs md:text-xs lg:text-sm xl:text-lg 2xl:text-2xl truncate" style={{ color: '#21AD55', textShadow: '0 0 6px rgba(0,255,0,0.5)', lineHeight: 1.2 }}>
+                <div className="font-mono uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-xs leading-tight" style={{ color: '#2DE85C', fontWeight: 500, letterSpacing: '0.06em', lineHeight: 1.2 }}>SSC · GLOBAL MERCY POT</div>
+                <div className="font-extrabold font-mono tabular-nums mercy-value text-[10px] sm:text-xs md:text-xs lg:text-sm xl:text-lg 2xl:text-2xl" style={{ color: '#21AD55', textShadow: '0 0 6px rgba(0,255,0,0.5)', lineHeight: 1.2 }}>
                   {formatMercyPot(mercyDisplay)}
                 </div>
               </div>
