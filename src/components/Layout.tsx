@@ -197,10 +197,10 @@ export default function Layout({ children }: LayoutProps) {
         </main>
       ) : pageOnly ? (
         <>
-          <div className="w-full min-w-0 max-w-full flex-shrink-0 px-3 sm:px-4 pt-3 sm:pt-4 pb-2">
+          <div className="w-full min-w-0 max-w-full flex-shrink-0 px-2 pt-2 pb-1 sm:px-4 sm:pt-3 sm:pb-2">
             <Header />
           </div>
-          <main className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden px-3 sm:px-4 pb-6">
+          <main className="flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden px-2 pb-6 pt-0 sm:px-4 sm:pb-8">
             {children}
           </main>
         </>
@@ -243,7 +243,14 @@ export default function Layout({ children }: LayoutProps) {
                 `}
               >
                 <div
-                  className={`${mobilePageOnly ? 'min-h-0' : location.pathname === '/' ? 'min-h-[80vh]' : 'min-h-[70vh]'} lg:min-h-0 lg:flex-1 flex justify-center items-stretch min-w-0 max-w-full`}
+                  className={`${
+                    mobilePageOnly
+                      ? /* profile / shop / leaderboard: don’t shrink below content — avoids clipped glass panels on mobile */
+                        'min-h-0 w-full max-w-full shrink-0'
+                      : location.pathname === '/'
+                        ? 'min-h-[80vh]'
+                        : 'min-h-[70vh]'
+                  } lg:min-h-0 lg:flex-1 flex justify-center items-stretch min-w-0 max-w-full`}
                 >
                   {children}
                 </div>

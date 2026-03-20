@@ -20,7 +20,7 @@ interface ShopItem {
   effect: { gold?: number; metalSpeed?: number; oracleSpeed?: number }
 }
 
-const panelClass = 'glass-green rounded-2xl p-6 sm:p-8'
+const panelClass = 'glass-green w-full min-w-0 rounded-2xl p-4 sm:p-8'
 const ITEMS_PER_PAGE = 8
 
 function effectLabel(item: ShopItem): string {
@@ -237,7 +237,7 @@ export default function Shop() {
 
   if (!user || !token) {
     return (
-      <div className={`${panelClass} max-w-2xl w-full mx-auto p-8`}>
+      <div className={`${panelClass} max-w-full sm:max-w-2xl mx-auto`}>
         <h1 className="text-2xl font-bold text-bunker-green mb-4">Black Market</h1>
         <p className="text-gray-400 mb-4">Sign in to access the Black Market and purchase Gold or permanent boosts.</p>
         <Link to="/login" className="text-bunker-green hover:underline">Sign in</Link>
@@ -246,10 +246,12 @@ export default function Shop() {
   }
 
   return (
-    <div className={`${panelClass} max-w-2xl w-full mx-auto`}>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-bunker-green">Black Market</h1>
-        <Link to="/profile" className="text-sm text-white/60 hover:text-bunker-green transition">← Profile</Link>
+    <div className={`${panelClass} max-w-full sm:max-w-2xl mx-auto pb-6`}>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-2 sm:mb-6">
+        <h1 className="text-xl font-bold text-bunker-green sm:text-2xl">Black Market</h1>
+        <Link to="/profile" className="shrink-0 text-sm text-white/60 transition hover:text-bunker-green">
+          ← Profile
+        </Link>
       </div>
 
       {processing && (
@@ -286,7 +288,7 @@ export default function Shop() {
         <p className="text-white/60">Loading catalog...</p>
       ) : (
         <>
-        <ul className="space-y-3">
+        <ul className="w-full min-w-0 space-y-2 sm:space-y-3">
           {paginatedItems.map((item) => {
             const owned = isOwned(item, metalMod, oracleMod)
             const upgrade = isUpgrade(item, metalMod, oracleMod)
@@ -294,14 +296,14 @@ export default function Shop() {
             return (
               <li
                 key={item.id}
-                className="glass-inset flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl border border-white/10"
+                className="glass-inset flex w-full min-w-0 flex-col gap-2 rounded-xl border border-white/10 p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2"
               >
-                <div>
+                <div className="min-w-0 flex-1">
                   <span className="text-white font-medium">{item.name}</span>
-                  <span className="text-white/45 text-xs ml-2 uppercase">({item.type})</span>
-                  <div className="text-white/65 text-sm mt-0.5">{effectLabel(item)}</div>
+                  <span className="ml-2 text-xs uppercase text-white/45">({item.type})</span>
+                  <div className="mt-0.5 text-sm text-white/65">{effectLabel(item)}</div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end sm:gap-2">
                   <span className="text-bunker-green font-bold">${item.price.toFixed(2)}</span>
                   <button
                     type="button"
