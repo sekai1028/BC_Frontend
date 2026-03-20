@@ -9,7 +9,7 @@ import SuccessBanner from '../components/SuccessBanner'
 import BootOverlay, { getBootOverlayDismissed, getBootRequested } from '../components/BootOverlay'
 import GoldZipEffect from '../components/GoldZipEffect'
 import AchievementToast from '../components/AchievementToast'
-import { useGameStore } from '../store/gameStore'
+import { useGameStore, registerGhostInboundFlush } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
 import { useSocket } from '../hooks/useSocket'
 import { getOrCreateGuestId, getOrCreateGuestDisplayName, getGuestId } from '../utils/guestIdentity'
@@ -184,6 +184,21 @@ export default function Terminal() {
     }, GHOST_BUFFER_DRAIN_MS)
     return () => clearInterval(id)
   }, [gameState, addGhostPointFromServer, endGhostFromServer])
+
+  // Let skipGhost() apply every buffered server tick instantly (interval would drop points after ghostCrashed)
+  useEffect(() => {
+    const flush = () => {
+      const buf = ghostBufferRef.current
+      const { addGhostPointFromServer, endGhostFromServer } = useGameStore.getState()
+      while (buf.length > 0) {
+        const item = buf.shift()!
+        if (item.crashed) endGhostFromServer(item.mult)
+        else addGhostPointFromServer(item.mult)
+      }
+    }
+    registerGhostInboundFlush(flush)
+    return () => registerGhostInboundFlush(null)
+  }, [])
 
   // When entering a round, seed smoothed value from chart so transition from idle is smooth
   useEffect(() => {
@@ -529,9 +544,14 @@ export default function Terminal() {
         setRegretToast({ mult: state.ghostCurrentMult, amount })
         setTimeout(() => setRegretToast(null), 5000)
       }
+      ghostBufferRef.current = []
       resetGhostAndPath()
       setGameState('idle')
       setLeaderboardRank(null, null)
+      // Same as Continue / banner dismiss — otherwise multiplier-path-sync repaints server path ("picks up where it left off")
+      setGlobalRoundActive(false)
+      setServerIdleActive(false)
+      startAppBgm()
     }
     if (wager <= 0 || isRunning) return
     if (!socket) {
@@ -805,6 +825,8 @@ export default function Terminal() {
                 </div>
                   )
                 })()}
+                {/* GDD 2.7.2: Purple headline blur only over chart — FOLD/HOLD strip stays visible & clickable */}
+                {isFrozen && <HeadlineNotification />}
               </div>
             </div>
 
@@ -860,14 +882,18 @@ export default function Terminal() {
                     <div
                       className="
                         flex flex-col gap-3 min-w-0
-                        lg:grid lg:items-stretch lg:gap-x-3 lg:gap-y-3 xl:gap-x-4
-                        lg:grid-cols-[minmax(5.5rem,8rem)_minmax(17rem,1fr)_minmax(10.5rem,12.5rem)]
+                        lg:grid lg:gap-x-3 lg:gap-y-2 xl:gap-x-4 xl:gap-y-2
+                        lg:grid-cols-1
                         xl:grid-cols-[minmax(6rem,9rem)_minmax(18rem,1fr)_minmax(11.5rem,14rem)]
+                        xl:grid-rows-[auto_auto]
                         min-[1024px]:max-[1279px]:grid-cols-1
                       "
                     >
                       {/* lg+: auto-fold + network (mockup left rail) */}
-                      <div className="hidden lg:flex flex-col gap-2 min-w-0 justify-center min-[1024px]:max-[1279px]:order-1">
+                      <div
+                        className="hidden lg:flex flex-col gap-2 min-w-0 justify-center min-[1024px]:max-[1279px]:order-1
+                          xl:col-start-1 xl:row-start-1 xl:row-span-2 xl:self-center"
+                      >
                         <div
                           className="flex items-center gap-2 opacity-40 pointer-events-none select-none cursor-not-allowed"
                           title="Auto-fold unavailable"
@@ -896,24 +922,39 @@ export default function Terminal() {
                         </div>
                       </div>
 
-                      {/* Presets + wager + labels */}
-                      <div className="flex flex-1 min-w-0 flex-col gap-2 min-[1024px]:max-[1279px]:order-2 min-[1024px]:max-[1279px]:w-full">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 min-w-0 w-full">
-                          <span className="text-sm sm:text-base md:text-lg font-display font-bold text-bunker-green uppercase tracking-wide">
-                            Siphon Payload
-                          </span>
-                          <span className="text-xs sm:text-sm md:text-base font-display font-semibold text-amber-400/95 tabular-nums whitespace-nowrap">
-                            Wager cap: {wagerCap} Gold
-                          </span>
-                        </div>
-                        <div className="grid min-w-0 w-full grid-cols-1 min-[420px]:grid-cols-[auto_minmax(0,1fr)] gap-2 sm:gap-3 items-end">
+                      {/* Title row: full width; on xl+ spans wager+HOLD columns (row 1) so row 2 aligns bet strip with button */}
+                      <div
+                        className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 min-w-0 w-full min-[1024px]:max-[1279px]:order-2
+                          xl:col-start-2 xl:col-span-2 xl:row-start-1"
+                      >
+                        <span className="text-sm sm:text-base md:text-lg font-display font-bold text-bunker-green uppercase tracking-wide">
+                          Siphon Payload
+                        </span>
+                        <span className="text-xs sm:text-sm md:text-base font-display font-semibold text-amber-400/95 tabular-nums whitespace-nowrap">
+                          Wager cap: {wagerCap} Gold
+                        </span>
+                      </div>
+
+                      {/*
+                        Presets + bet field | HOLD: header is above this row so items-center lines up with the button only.
+                        lg:contents promotes children into the parent grid on xl+ (row 2: cols 2 & 3).
+                      */}
+                      <div
+                        className="
+                          flex w-full min-w-0 flex-col gap-3
+                          min-[480px]:flex-row min-[480px]:items-center min-[480px]:gap-3 min-[480px]:justify-between
+                          min-[1024px]:max-[1279px]:order-3
+                          lg:contents
+                        "
+                      >
+                        <div className="grid min-w-0 w-full flex-1 grid-cols-1 min-[420px]:grid-cols-[auto_minmax(0,1fr)] gap-2 sm:gap-3 items-center min-[1024px]:max-[1279px]:order-3 xl:col-start-2 xl:row-start-2 xl:self-center xl:min-w-0">
                           <WagerFractionButtons
                             value={isRunning ? currentWager : wager}
                             onChange={setWager}
                             readOnly={isRunning}
                             layout="chart"
                           />
-                          <div className="min-w-0 w-full">
+                          <div className="min-w-0 w-full self-center">
                             <WagerInput
                               value={isRunning ? currentWager : wager}
                               onChange={setWager}
@@ -925,26 +966,30 @@ export default function Terminal() {
                             />
                           </div>
                         </div>
-                      </div>
 
-                      <div className="order-3 w-full min-w-0 max-w-full flex items-center justify-center min-[1024px]:max-[1279px]:order-3 lg:justify-end lg:min-w-[10.5rem]">
-                        <HoldFoldButton
-                          size="large"
-                          className="w-full max-w-full min-w-0 sm:max-w-[280px] min-[1024px]:max-[1279px]:max-w-none lg:max-w-none lg:w-full"
-                          isRunning={gameState === 'crashed' && crashShowFoldButton ? true : isRunning}
-                          onClick={isRunning ? handleFold : handleHold}
-                          disabled={
-                            gameState === 'crashed' && crashShowFoldButton
-                              ? true
-                              : gameState === 'folded' && !ghostCrashed && !showChartSkipToEnd
-                              ? true
-                              : gameState === 'folded' && ghostCrashed && !resultsMinTimePassed
-                              ? true
-                              : !isRunning && (wager <= 0 || wager > gold || wager > wagerCap)
-                          }
-                          showHoldBreathing={(gameState === 'crashed' || gameState === 'liquidated') && !crashShowFoldButton || gameState === 'folded'}
-                          onPress={() => { setJitterActive(true); setTimeout(() => setJitterActive(false), 120) }}
-                        />
+                        <div
+                          className="flex w-full min-w-0 max-w-full shrink-0 items-center justify-center min-[480px]:w-auto min-[480px]:max-w-[min(100%,280px)]
+                            min-[1024px]:max-[1279px]:order-4 min-[1024px]:max-[1279px]:max-w-none
+                            xl:col-start-3 xl:row-start-2 xl:w-full xl:max-w-none xl:min-w-[10.5rem] xl:justify-end xl:self-center"
+                        >
+                          <HoldFoldButton
+                            size="large"
+                            className="w-full max-w-full min-w-0 sm:max-w-[280px] min-[1024px]:max-[1279px]:max-w-none xl:max-w-none xl:w-full"
+                            isRunning={gameState === 'crashed' && crashShowFoldButton ? true : isRunning}
+                            onClick={isRunning ? handleFold : handleHold}
+                            disabled={
+                              gameState === 'crashed' && crashShowFoldButton
+                                ? true
+                                : gameState === 'folded' && !ghostCrashed && !showChartSkipToEnd
+                                  ? true
+                                  : gameState === 'folded' && ghostCrashed && !resultsMinTimePassed
+                                    ? true
+                                    : !isRunning && (wager <= 0 || wager > gold || wager > wagerCap)
+                            }
+                            showHoldBreathing={(gameState === 'crashed' || gameState === 'liquidated') && !crashShowFoldButton || gameState === 'folded'}
+                            onPress={() => { setJitterActive(true); setTimeout(() => setJitterActive(false), 120) }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </>
@@ -961,9 +1006,6 @@ export default function Terminal() {
           </div>
         </div>
       </div>
-
-      {/* Headline Notification */}
-      {isFrozen && <HeadlineNotification />}
 
       {/* GDD 2.6: Regret toast — "Last connection survived until [M]x. You abandoned [Amount] Gold." */}
       {regretToast && (

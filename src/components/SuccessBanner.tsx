@@ -248,8 +248,8 @@ export default function SuccessBanner() {
                 onClick={() => {
                   if (ghostCrashed) dismissResults()
                   else {
+                    // Flush buffer + end ghost; stay on results — do not dismiss (that was skipping the whole flow)
                     useGameStore.getState().skipGhost()
-                    dismissResults()
                   }
                 }}
                 className="w-full py-1.5 sm:py-3 px-2.5 sm:px-4 font-terminal font-bold text-xs sm:text-sm uppercase rounded-md sm:rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98] border-2"

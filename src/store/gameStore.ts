@@ -1,5 +1,11 @@
 import { create } from 'zustand'
 
+/** Set from Terminal: drain all queued server ghost points before skip (avoids losing buffered path). */
+let ghostInboundFlush: (() => void) | null = null
+export function registerGhostInboundFlush(fn: (() => void) | null) {
+  ghostInboundFlush = fn
+}
+
 interface GameState {
   isRunning: boolean
   isFrozen: boolean
@@ -218,19 +224,31 @@ export const useGameStore = create<GameState>((set) => ({
       ghostMaxMult: Math.max(s.ghostMaxMult, multiplier)
     }
   }),
-  endGhostFromServer: (crashMultiplier) => set((s) => ({
-    ghostPath: s.ghostPath.length > 0 ? [...s.ghostPath, crashMultiplier] : [s.foldMultiplier, crashMultiplier],
-    ghostCurrentMult: crashMultiplier,
-    ghostMaxMult: Math.max(s.ghostMaxMult, crashMultiplier),
-    ghostCrashed: true,
-    ghostCrashedAt: s.ghostCrashedAt ?? Date.now()
-  })),
-  skipGhost: () => set((s) => ({
-    ghostCrashed: true,
-    ghostMaxMult: Math.max(s.ghostMaxMult, s.ghostCurrentMult),
-    ghostCrashedAt: s.ghostCrashedAt ?? Date.now(),
-    ghostSkippedByUser: true
-  })),
+  endGhostFromServer: (crashMultiplier) => set((s) => {
+    if (s.ghostCrashed) return {}
+    return {
+      ghostPath: s.ghostPath.length > 0 ? [...s.ghostPath, crashMultiplier] : [s.foldMultiplier, crashMultiplier],
+      ghostCurrentMult: crashMultiplier,
+      ghostMaxMult: Math.max(s.ghostMaxMult, crashMultiplier),
+      ghostCrashed: true,
+      ghostCrashedAt: s.ghostCrashedAt ?? Date.now(),
+    }
+  }),
+  /** Apply every buffered server ghost tick first, then end/skip UI (see registerGhostInboundFlush). */
+  skipGhost: () => {
+    ghostInboundFlush?.()
+    set((s) => {
+      if (s.ghostCrashed) {
+        return { ghostSkippedByUser: true }
+      }
+      return {
+        ghostCrashed: true,
+        ghostMaxMult: Math.max(s.ghostMaxMult, s.ghostCurrentMult),
+        ghostCrashedAt: Date.now(),
+        ghostSkippedByUser: true,
+      }
+    })
+  },
   resetGhostAndPath: () => set({
     multiplierPath: [],
     ghostPath: [],

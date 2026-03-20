@@ -197,7 +197,7 @@ export default function Layout({ children }: LayoutProps) {
         </main>
       ) : pageOnly ? (
         <>
-          <div className="w-full flex-shrink-0 px-3 sm:px-4 pt-3 sm:pt-4 pb-2">
+          <div className="w-full min-w-0 max-w-full flex-shrink-0 px-3 sm:px-4 pt-3 sm:pt-4 pb-2">
             <Header />
           </div>
           <main className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden px-3 sm:px-4 pb-6">
@@ -225,7 +225,7 @@ export default function Layout({ children }: LayoutProps) {
           <OracleUplinkBanner />
           {/* GDD 13: Holophone is displayed in the left sidebar only (no floating modal) */}
           {/* Header: same horizontal/top padding as app; tighter bottom so gap to content matches panel gaps */}
-          <div className="w-full flex-shrink-0 px-3 sm:px-4 pt-3 sm:pt-4 pb-2">
+          <div className="w-full min-w-0 max-w-full flex-shrink-0 px-3 sm:px-4 pt-3 sm:pt-4 pb-2">
             <Header />
           </div>
           {/* Content: on lg three columns; below lg single scroll column (main + Global Chat stacked) */}

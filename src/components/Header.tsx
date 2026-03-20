@@ -8,13 +8,22 @@ import goldIcon from '../public/asset/gold.svg'
 import rankIcon from '../public/asset/Rank.svg'
 import dollarIcon from '../public/asset/$.png'
 import enterVaultIcon from '../public/asset/enter_the_vault.svg'
-import powerLevelIcon from '../public/asset/power_level.svg'
 
-const DROPDOWN_GAP = 4
+const DROPDOWN_GAP = 6
+/** Desktop / wide header menu width */
 const DROPDOWN_WIDTH = 200
+/** Cap width on mobile so the sheet doesn’t dominate the viewport */
+const DROPDOWN_MAX_WIDTH_MOBILE = 192
+const LG_MIN_PX = 1024
 const LORE_URL = 'https://timingthetop.com'
 
+/** Mercy Pot display: extra precision in header; tabular-nums keeps columns stable */
+const MERCY_POT_DECIMAL_PLACES = 7
+/** Only celebrate jiggle when server total actually increased (ignore clock-only / flat ticks) */
+const MERCY_POT_JIGGLE_EPS = 1e-7
+
 const menuNavClass = 'px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm'
+const menuNavClassCompact = 'px-2.5 py-2 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-xs leading-snug'
 
 /** GDD 6.1: Intensity level from signals count */
 function getMercyIntensityLevel(signals: number): 1 | 2 | 3 | 4 | 5 {
@@ -32,25 +41,88 @@ export default function Header() {
   const isRedLine = gameState === 'crashed' || gameState === 'liquidated'
   const displayRank = user?.rank ?? guestRank ?? 0
   const [menuOpen, setMenuOpen] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
+  const [dropdownLayout, setDropdownLayout] = useState<{ top: number; left: number; width: number } | null>(null)
   const [mercyDisplay, setMercyDisplay] = useState(mercyPot)
   const [mercyJiggle, setMercyJiggle] = useState(false)
-  const menuButtonRef = useRef<HTMLButtonElement>(null)
-  const prevMercyUpdatedAtRef = useRef(0)
+  /** Must be separate: only one ref per button — desktop header is `hidden` on mobile and would steal a shared ref. */
+  const menuButtonMobileRef = useRef<HTMLButtonElement>(null)
+  const menuButtonDesktopRef = useRef<HTMLButtonElement>(null)
+  const navDropdownRef = useRef<HTMLElement | null>(null)
+  const prevMercyServerRef = useRef<{ ts: number; pot: number }>({ ts: 0, pot: 0 })
   const intensityLevel = getMercyIntensityLevel(signalsDetected)
   const mercyIntensityClass = intensityLevel >= 2 ? `mercy-intensity-${intensityLevel}` : ''
 
   useEffect(() => {
-    if (!menuOpen || !menuButtonRef.current) {
-      setDropdownPosition(null)
+    if (!menuOpen) {
+      setDropdownLayout(null)
       return
     }
-    const rect = menuButtonRef.current.getBoundingClientRect()
-    const maxLeft = typeof window !== 'undefined' ? window.innerWidth - DROPDOWN_WIDTH - 8 : rect.right - DROPDOWN_WIDTH
-    setDropdownPosition({
-      top: rect.bottom + DROPDOWN_GAP,
-      left: Math.min(Math.max(8, rect.right - DROPDOWN_WIDTH), maxLeft),
-    })
+
+    const getTriggerEl = () => {
+      if (typeof window === 'undefined') return null
+      const isLg = window.matchMedia(`(min-width: ${LG_MIN_PX}px)`).matches
+      return isLg ? menuButtonDesktopRef.current : menuButtonMobileRef.current
+    }
+
+    const updateLayout = () => {
+      const el = getTriggerEl()
+      if (!el) {
+        setDropdownLayout(null)
+        return
+      }
+      const rect = el.getBoundingClientRect()
+      if (rect.width === 0 && rect.height === 0) {
+        setDropdownLayout(null)
+        return
+      }
+      const vw = window.innerWidth
+      const isMobile = vw < LG_MIN_PX
+      const width = isMobile
+        ? Math.min(DROPDOWN_MAX_WIDTH_MOBILE, Math.max(152, vw - 24))
+        : DROPDOWN_WIDTH
+      const margin = 8
+      let left = rect.right - width
+      left = Math.min(left, vw - width - margin)
+      left = Math.max(margin, left)
+      setDropdownLayout({
+        top: rect.bottom + DROPDOWN_GAP,
+        left,
+        width,
+      })
+    }
+
+    updateLayout()
+    window.addEventListener('resize', updateLayout)
+    window.addEventListener('scroll', updateLayout, true)
+    const mql = window.matchMedia(`(min-width: ${LG_MIN_PX}px)`)
+    mql.addEventListener('change', updateLayout)
+    return () => {
+      window.removeEventListener('resize', updateLayout)
+      window.removeEventListener('scroll', updateLayout, true)
+      mql.removeEventListener('change', updateLayout)
+    }
+  }, [menuOpen])
+
+  // Close menu when clicking outside (keeps header / hamburger usable; no full-screen overlay blocking them)
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target
+      if (!(target instanceof Node)) return
+      if (menuButtonMobileRef.current?.contains(target)) return
+      if (menuButtonDesktopRef.current?.contains(target)) return
+      if (navDropdownRef.current?.contains(target)) return
+      setMenuOpen(false)
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [menuOpen])
 
   // GDD 6: Interpolate Mercy Pot display using Global_Velocity between server updates (smooth tick)
@@ -65,23 +137,35 @@ export default function Header() {
     return () => clearInterval(t)
   }, [mercyPot, mercyPotVelocity, mercyPotUpdatedAt])
 
-  // Brief banner jiggle when server pushes mercy-pot-update (new timestamp)
+  // Jiggle only when a new mercy-pot-update **increases** the pot (not every 10s tick with same/rounded total)
   useEffect(() => {
     if (mercyPotUpdatedAt <= 0) return
-    const prev = prevMercyUpdatedAtRef.current
-    prevMercyUpdatedAtRef.current = mercyPotUpdatedAt
-    if (prev === 0) return
-    if (mercyPotUpdatedAt === prev) return
+    const { ts: prevTs, pot: prevPot } = prevMercyServerRef.current
+
+    if (prevTs === 0) {
+      prevMercyServerRef.current = { ts: mercyPotUpdatedAt, pot: mercyPot }
+      return
+    }
+
+    if (mercyPotUpdatedAt === prevTs) return
+
+    const potIncreased = mercyPot > prevPot + MERCY_POT_JIGGLE_EPS
+    prevMercyServerRef.current = { ts: mercyPotUpdatedAt, pot: mercyPot }
+
+    if (!potIncreased) return
+
     setMercyJiggle(true)
     const t = window.setTimeout(() => setMercyJiggle(false), 500)
     return () => clearTimeout(t)
-  }, [mercyPotUpdatedAt])
+  }, [mercyPot, mercyPotUpdatedAt])
 
-  // Mercy Pot: fixed 5 decimals after the dot (e.g. 149.52783)
   const formatMercyPot = (amount: number) => {
     const n = Math.max(0, amount)
-    return n.toFixed(5)
+    return n.toFixed(MERCY_POT_DECIMAL_PLACES)
   }
+
+  const signalsCopy = (n: number) =>
+    `${n} ${n === 1 ? 'Signal' : 'Signals'} = ${n}x Global Points`
 
   // GDD 8.1: 4 decimal places for micro-ticks (passive gold); 2 for large amounts
   const formatGold = (amount: number) => {
@@ -90,81 +174,126 @@ export default function Header() {
     return amount < 1000 ? amount.toFixed(4) : amount.toFixed(2)
   }
 
-  // Oracle / Power Core: level 1–10 → percentage for progress display
-  const oracleLevel = (user?.oracleLevel ?? 1) + (user?.oracleMod ?? 0)
-  const oracleLevelClamped = Math.max(1, Math.min(10, Math.floor(oracleLevel)))
-  const powerCorePercent = (oracleLevelClamped / 10) * 100
-
   return (
     <>
-    {/* Mobile layout: compact top bar + 2×2 stats grid (below lg) */}
-    <header className="lg:hidden w-full flex flex-col gap-1.5">
-      <div className="glass-strong flex items-center justify-between px-2 py-1.5 w-full rounded-lg border border-white/10 min-h-[40px]">
-        <Link
-          to="/play"
-          onClick={() => setMenuOpen(false)}
-          className="flex items-center justify-center flex-shrink-0 w-7 h-6 rounded-md cursor-pointer
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bunker-green/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50
-            hover:opacity-90 active:opacity-80 transition-opacity"
-          aria-label="Go to home — terminal chart"
-          title="Terminal / chart"
-        >
-          <img src={aegisIcon} alt="" className="w-full h-full object-contain pointer-events-none" />
-        </Link>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <Link
-            to="/vault"
-            className={`flex items-center justify-center ${user && displayRank >= 1 ? 'bunker-pulse' : ''}`}
-          >
-            <img src={enterVaultIcon} alt="Enter the Vault" className="h-5 w-auto object-contain max-w-[88px]" style={{ maxHeight: 20 }} />
-          </Link>
-          <button
-            ref={menuButtonRef}
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="glass-inset flex items-center justify-center rounded-md border border-white/10 w-7 h-7 flex-shrink-0"
-            aria-label="Open menu"
-            aria-expanded={menuOpen}
-          >
-            <span className="text-white text-sm font-light">≡</span>
-          </button>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-1.5 w-full">
-        <div className="glass-card flex items-center gap-1.5 rounded-md border border-white/10 p-1.5 min-h-[44px]">
-          <img src={rankIcon} alt="Rank" className="w-6 h-5 object-contain flex-shrink-0" />
-          <div className="min-w-0">
-            <div className="font-display uppercase text-[10px] text-[#B68CE5] tracking-wider">Exile Rank</div>
-            <div className="font-display font-bold text-[#B39CFF] text-sm leading-tight">CLASS {displayRank}</div>
-          </div>
-        </div>
-        <div className={`glass-card flex items-center gap-1.5 rounded-md border border-white/10 p-1.5 min-h-[44px] ${isRedLine ? 'red-line' : ''}`}>
-          <div className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(122,90,26,0.6)' }}>
-            <img src={goldIcon} alt="Gold" className="w-full h-full object-contain" />
-          </div>
-          <div className="min-w-0">
-            <div className="font-display uppercase text-[10px] tracking-wider" style={{ color: isRedLine ? '#cc4444' : 'rgba(255,255,200,0.9)' }}>Balance</div>
-            <div className={`font-sans font-bold text-sm leading-tight truncate ${isRedLine ? 'red-line-target' : ''}`} style={{ color: isRedLine ? '#cc4444' : '#FFFF00' }}>{formatGold(gold)}</div>
-          </div>
-        </div>
-        <div className="glass-card flex flex-col justify-center rounded-md border border-white/10 p-1.5 min-h-[44px]">
-          <div className="flex items-center gap-1.5">
-            <img src={powerLevelIcon} alt="Power Core" className="w-6 h-5 object-contain flex-shrink-0" />
-            <div className="min-w-0 flex-1">
-              <div className="font-display uppercase text-[10px] text-blue-300 tracking-wider">Power Core Level</div>
-              <div className="font-sans font-bold text-sm text-blue-200">{powerCorePercent}%</div>
+    {/* Mobile + tablet (below lg): compact height — terminal stays visible */}
+    <header
+      className="lg:hidden flex w-full min-w-0 max-w-full flex-col items-stretch gap-1 overflow-x-hidden supports-[padding:max(0px)]:pt-[max(0px,env(safe-area-inset-top))] md:items-center"
+      role="banner"
+    >
+      <div className="flex w-full min-w-0 max-w-full flex-col gap-1">
+        {/* Row 1: full width ÷ 4 equal columns — left | center-left | center-right | right aligned as one bar */}
+        <div className="glass-strong w-full min-w-0 max-w-full rounded-lg border border-white/10 px-1.5 py-1.5 sm:px-2 sm:py-2">
+          <div className="grid w-full min-w-0 grid-cols-4 gap-1 sm:gap-1.5">
+            <div className="flex min-w-0 items-center justify-center">
+              <Link
+                to="/play"
+                onClick={() => setMenuOpen(false)}
+                className="flex h-9 w-9 max-w-full items-center justify-center rounded-md cursor-pointer sm:h-10 sm:w-10
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bunker-green/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50
+                  hover:opacity-90 active:opacity-80 transition-opacity"
+                aria-label="Go to home — terminal chart"
+                title="Terminal / chart"
+              >
+                <img src={aegisIcon} alt="" className="pointer-events-none h-full w-full object-contain object-center" />
+              </Link>
+            </div>
+            <div className="flex min-w-0 items-center justify-center px-0.5">
+              <div className="glass-card flex w-full max-w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center sm:px-1.5 sm:py-1.5">
+                <img src={rankIcon} alt="" className="h-4 w-4 shrink-0 object-contain sm:h-5 sm:w-5" />
+                <div className="w-full min-w-0 leading-tight">
+                  <div className="font-display text-[5px] uppercase tracking-wider text-[#B68CE5] sm:text-[6px]" title="Exile Rank">
+                    Exile Rank
+                  </div>
+                  <div className="font-display text-[10px] font-bold tabular-nums text-[#B39CFF] sm:text-[11px]" title={`Class ${displayRank}`}>
+                    CLASS {displayRank}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex min-w-0 items-center justify-center px-0.5">
+              {user ? (
+                <Link
+                  to="/profile"
+                  onClick={() => setMenuOpen(false)}
+                  className="glass-inset flex w-full max-w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center hover:bg-white/5 sm:py-1.5"
+                  title={user.username}
+                >
+                  <div
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[9px] font-bold uppercase text-bunker-green sm:h-7 sm:w-7"
+                    style={{ background: 'rgba(0,255,65,0.15)', border: '1px solid rgba(0,255,65,0.4)' }}
+                    aria-hidden
+                  >
+                    {(user.username || '?').charAt(0)}
+                  </div>
+                  <span className="line-clamp-2 w-full px-0.5 text-center font-mono text-[7px] leading-tight text-white/90 sm:text-[8px]">
+                    {user.username}
+                  </span>
+                </Link>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex w-full min-w-0 items-center justify-center rounded-md border border-bunker-green/50 bg-[rgba(0,255,65,0.08)] px-1 py-1.5 text-center font-mono text-[7px] font-bold uppercase tracking-wide text-bunker-green hover:bg-bunker-green/10 sm:text-[8px]"
+                >
+                  Sign in
+                </Link>
+              )}
+            </div>
+            <div className="flex min-w-0 items-center justify-center">
+              <button
+                ref={menuButtonMobileRef}
+                type="button"
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="glass-inset flex size-9 touch-manipulation items-center justify-center rounded-md border border-white/10 sm:size-10"
+                aria-label="Open menu"
+                aria-expanded={menuOpen}
+              >
+                <span className="text-base font-light leading-none text-white">≡</span>
+              </button>
             </div>
           </div>
-          <div className="mt-0.5 h-1 w-full rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${powerCorePercent}%` }} />
-          </div>
         </div>
-        <div className={`glass-card flex flex-col justify-center rounded-md border border-white/10 p-1.5 min-h-[44px] ${mercyIntensityClass}`}>
-          <div className={`min-w-0 w-full ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
-            <div className="flex items-center gap-1.5">
-              <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-5 object-contain flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <div className="font-display uppercase text-[10px] text-[#2DE85C] tracking-wider">Global Mercy Pot</div>
-                <div className="font-sans font-bold text-xs text-[#21AD55] leading-tight">{formatMercyPot(mercyDisplay)}</div>
+        {/* Row 2: full width ÷ 2 equal columns — Balance | Mercy, content centered in each half */}
+        <div className="glass-strong w-full min-w-0 max-w-full rounded-lg border border-white/10 px-1.5 py-1.5 sm:px-2 sm:py-2">
+          <div className="grid w-full min-w-0 grid-cols-2 gap-1 sm:gap-1.5">
+            <div
+              className={`glass-card flex min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center sm:px-2 sm:py-1.5 ${isRedLine ? 'red-line' : ''}`}
+            >
+              <div
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded sm:h-7 sm:w-7"
+                style={{ background: 'rgba(122,90,26,0.6)' }}
+              >
+                <img src={goldIcon} alt="" className="h-full w-full object-contain" />
+              </div>
+              <div
+                className="w-full min-w-0 font-display text-[6px] uppercase tracking-wider sm:text-[7px]"
+                style={{ color: isRedLine ? '#cc4444' : 'rgba(255,255,200,0.9)' }}
+              >
+                Balance
+              </div>
+              <div
+                className={`max-w-full truncate px-0.5 text-center font-mono text-[10px] font-bold tabular-nums sm:text-[11px] ${isRedLine ? 'red-line-target' : ''}`}
+                style={{ color: isRedLine ? '#cc4444' : '#FFFF00' }}
+                title={formatGold(gold)}
+              >
+                {formatGold(gold)}
+              </div>
+            </div>
+            <div
+              className={`glass-card flex min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center sm:px-2 sm:py-1.5 ${mercyIntensityClass}`}
+            >
+              <div className={`flex shrink-0 items-center ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
+                <img src={dollarIcon} alt="" className="h-6 w-6 object-contain sm:h-7 sm:w-7" />
+              </div>
+              <div className="w-full min-w-0 px-0.5 font-mono text-[6px] font-medium uppercase leading-tight tracking-wider text-[#2DE85C] sm:text-[7px]">
+                SSC · GLOBAL MERCY POT
+              </div>
+              <div className="max-w-full overflow-x-auto whitespace-nowrap text-center font-mono text-[9px] font-bold tabular-nums text-[#21AD55] sm:text-[10px]" title={formatMercyPot(mercyDisplay)}>
+                {formatMercyPot(mercyDisplay)}
+              </div>
+              <div className="line-clamp-2 w-full px-0.5 text-center font-mono text-[6px] leading-tight text-white/60 tabular-nums sm:text-[7px]">
+                {signalsCopy(signalsDetected)}
               </div>
             </div>
           </div>
@@ -172,16 +301,19 @@ export default function Header() {
       </div>
     </header>
 
-    {/* Desktop layout: single line (lg and up); each section/button scales by sm → md → lg → xl → 2xl */}
+    {/* Desktop (lg+): Logo → Balance → Rank → Mercy Pot → Vault → Profile/Sign-in → Menu; horizontal scroll if viewport too narrow */}
     <header
-      className="hidden lg:flex glass-strong justify-center items-center w-full overflow-x-auto border border-white/10 rounded-2xl
+      role="banner"
+      className="hidden lg:flex glass-strong min-w-0 max-w-full justify-center items-center w-full overflow-x-auto overflow-y-hidden border border-white/10 rounded-2xl [scrollbar-width:thin]
         px-2 sm:px-3 md:px-4 lg:px-4 xl:px-6 2xl:px-6
         min-h-[48px] sm:min-h-[50px] md:min-h-[52px] lg:min-h-[56px] xl:min-h-[64px] 2xl:min-h-[72px]"
     >
-      <div className="flex flex-nowrap items-center justify-center w-full max-w-full min-w-0
+      <div
+        className="flex flex-nowrap items-center justify-center w-full max-w-full min-w-0
         gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 xl:gap-6 2xl:gap-10
         py-1.5 sm:py-2 md:py-2 lg:py-2.5 xl:py-3 2xl:py-3
-        px-1 sm:px-1 md:px-2 lg:px-2 xl:px-3 2xl:px-4">
+        px-1 sm:px-1 md:px-2 lg:px-2 xl:px-3 2xl:px-4"
+      >
           {/* Aegis logo — button-style link to terminal chart from any page */}
           <Link
             to="/play"
@@ -236,11 +368,11 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Mercy Pot — fixed width + tabular-nums so value updates don't shift layout; content centered */}
+          {/* Mercy Pot — wider card for 7 dp; tabular-nums keeps digits aligned */}
           <div
             id="header-mercy-balance"
             className={`glass-card flex flex-col flex-shrink-0 hidden sm:flex ${mercyIntensityClass}
-              w-[100px] min-h-9 sm:w-[120px] sm:min-h-10 md:w-[140px] md:min-h-11 lg:w-[180px] lg:min-h-14 xl:w-[220px] xl:min-h-[64px] 2xl:w-[260px] 2xl:min-h-[76px]
+              w-[128px] min-h-9 sm:w-[152px] sm:min-h-10 md:w-[172px] md:min-h-11 lg:w-[212px] lg:min-h-14 xl:w-[256px] xl:min-h-[64px] 2xl:w-[300px] 2xl:min-h-[76px]
               pl-3 pr-3 pt-2 pb-2 sm:pl-3 sm:pr-4 sm:pt-2.5 sm:pb-2 md:pl-3.5 md:pr-4 md:pt-2.5 md:pb-2.5 lg:pl-4 lg:pr-5 lg:pt-3 lg:pb-3 xl:pl-4 xl:pr-6 xl:pt-3 xl:pb-3 2xl:pl-5 2xl:pr-6 2xl:pt-3.5 2xl:pb-3.5`}
             style={{ borderRadius: 12 }}
           >
@@ -256,10 +388,16 @@ export default function Header() {
                   </div>
                 </div>
               </div>
-              <div className="font-mono tracking-wider tabular-nums flex items-center justify-center gap-0.5 sm:gap-1 text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] pt-0.5 sm:pt-1 px-0.5" style={{ letterSpacing: '0.1em' }}>
-                <span className="text-white/55">[ {signalsDetected} signals · </span>
-                <span style={{ color: '#21AD55', textShadow: '0 0 4px rgba(0,255,0,0.4)' }}>×{signalsDetected}</span>
-                <span className="text-white/55"> ]</span>
+              <div
+                className="font-mono tabular-nums flex flex-wrap items-center justify-center text-center gap-x-0.5 text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] pt-0.5 sm:pt-1 px-0.5 leading-tight"
+                style={{ letterSpacing: '0.04em' }}
+              >
+                <span className="text-white/60">{signalsDetected === 1 ? '1 Signal' : `${signalsDetected} Signals`}</span>
+                <span className="text-white/55"> = </span>
+                <span className="font-bold" style={{ color: '#21AD55', textShadow: '0 0 4px rgba(0,255,0,0.4)' }}>
+                  {signalsDetected}x
+                </span>
+                <span className="text-white/60"> Global Points</span>
               </div>
             </div>
           </div>
@@ -316,7 +454,8 @@ export default function Header() {
 
           <div className="relative flex-shrink-0">
             <button
-              ref={menuButtonRef}
+              ref={menuButtonDesktopRef}
+              type="button"
               onClick={() => setMenuOpen(!menuOpen)}
               className="glass-inset flex items-center justify-center rounded-lg border border-white/10 hover:bg-white/5 transition
                 w-7 h-7 sm:w-8 sm:h-8 md:w-8 md:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 2xl:w-12 2xl:h-12"
@@ -329,64 +468,106 @@ export default function Header() {
           </div>
       </div>
     </header>
-    {menuOpen && dropdownPosition && createPortal(
-      <nav
-        className="glass-strong min-w-[200px] py-2 rounded-xl font-mono text-sm border border-white/10"
-        style={{
-          position: 'fixed',
-          top: dropdownPosition.top,
-          left: dropdownPosition.left,
-          width: DROPDOWN_WIDTH,
-          zIndex: 9999,
-          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-        }}
-      >
-        <div className="flex flex-col gap-0.5 px-1">
-          {user ? (
-            <>
-              <Link to="/" onClick={() => setMenuOpen(false)} className={menuNavClass}>Terminal</Link>
-              <Link to="/profile" onClick={() => setMenuOpen(false)} className={menuNavClass}>Exile Profile</Link>
-              <Link to="/shop" onClick={() => setMenuOpen(false)} className={menuNavClass}>Black Market</Link>
-              <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className={menuNavClass}>Leaderboard</Link>
-              <Link to="/about" onClick={() => setMenuOpen(false)} className={menuNavClass}>About</Link>
-              <a
-                href={LORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMenuOpen(false)}
-                className={menuNavClass}
-              >
-                Lore ↗
-              </a>
-              <button
-                type="button"
-                onClick={() => { setMenuOpen(false); logout(); navigate('/', { replace: true }) }}
-                className="px-3 py-2.5 rounded text-left text-red-400 hover:bg-red-500/10 transition text-sm border-t border-white/10 mt-1 pt-2"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" onClick={() => setMenuOpen(false)} className={menuNavClass}>Sign in</Link>
-              <Link to="/play" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-bunker-green hover:bg-bunker-green/20 transition text-sm">Play as guest</Link>
-              <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className={menuNavClass}>Leaderboard</Link>
-              <Link to="/about" onClick={() => setMenuOpen(false)} className={menuNavClass}>About</Link>
-              <a
-                href={LORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMenuOpen(false)}
-                className={menuNavClass}
-              >
-                Lore ↗
-              </a>
-            </>
-          )}
-        </div>
-      </nav>,
-      document.body
-    )}
+    {menuOpen &&
+      dropdownLayout &&
+      createPortal(
+        <>
+          <nav
+            ref={navDropdownRef}
+            id="header-nav-dropdown"
+            aria-label="Site menu"
+            className="glass-strong py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-mono border border-white/10 max-h-[min(70vh,calc(100vh-5rem))] overflow-y-auto overscroll-contain"
+            style={{
+              position: 'fixed',
+              top: dropdownLayout.top,
+              left: dropdownLayout.left,
+              width: dropdownLayout.width,
+              zIndex: 9999,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+            }}
+          >
+            <div className="flex flex-col gap-0 px-0.5 sm:px-1">
+              {(() => {
+                const navItem = dropdownLayout.width <= DROPDOWN_MAX_WIDTH_MOBILE + 1 ? menuNavClassCompact : menuNavClass
+                return user ? (
+                  <>
+                    <Link to="/" onClick={() => setMenuOpen(false)} className={navItem}>
+                      Terminal
+                    </Link>
+                    <Link to="/profile" onClick={() => setMenuOpen(false)} className={navItem}>
+                      Exile Profile
+                    </Link>
+                    <Link to="/shop" onClick={() => setMenuOpen(false)} className={navItem}>
+                      Black Market
+                    </Link>
+                    <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className={navItem}>
+                      Leaderboard
+                    </Link>
+                    <Link to="/about" onClick={() => setMenuOpen(false)} className={navItem}>
+                      About
+                    </Link>
+                    <a
+                      href={LORE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMenuOpen(false)}
+                      className={navItem}
+                    >
+                      Lore ↗
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        logout()
+                        navigate('/', { replace: true })
+                      }}
+                      className={`w-full text-left text-red-400 hover:bg-red-500/10 transition border-t border-white/10 mt-0.5 pt-1.5 ${
+                        dropdownLayout.width <= DROPDOWN_MAX_WIDTH_MOBILE + 1 ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'
+                      }`}
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setMenuOpen(false)} className={navItem}>
+                      Sign in
+                    </Link>
+                    <Link
+                      to="/play"
+                      onClick={() => setMenuOpen(false)}
+                      className={
+                        dropdownLayout.width <= DROPDOWN_MAX_WIDTH_MOBILE + 1
+                          ? 'px-2.5 py-2 rounded text-bunker-green hover:bg-bunker-green/20 transition text-xs leading-snug'
+                          : 'px-3 py-2.5 rounded text-bunker-green hover:bg-bunker-green/20 transition text-sm'
+                      }
+                    >
+                      Play as guest
+                    </Link>
+                    <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className={navItem}>
+                      Leaderboard
+                    </Link>
+                    <Link to="/about" onClick={() => setMenuOpen(false)} className={navItem}>
+                      About
+                    </Link>
+                    <a
+                      href={LORE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMenuOpen(false)}
+                      className={navItem}
+                    >
+                      Lore ↗
+                    </a>
+                  </>
+                )
+              })()}
+            </div>
+          </nav>
+        </>,
+        document.body
+      )}
     </>
   )
 }

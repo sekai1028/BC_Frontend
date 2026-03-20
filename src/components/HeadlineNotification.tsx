@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore'
 import { playAssetMp3, ASSET } from '../utils/audio'
 import warnSvg from '../public/asset/warn.svg'
 
-/** GDD 2.7.2: Purple headline overlay; typewriter 15ms/char; 7s freeze; entrance/exit animations */
+/** GDD 2.7.2: Purple headline over chart only (not HOLD/FOLD strip); typewriter 15ms/char; 7s freeze */
 export default function HeadlineNotification() {
   const headlineText = useGameStore((s) => s.headlineText)
   const headlineExiting = useGameStore((s) => s.headlineExiting)
@@ -31,7 +31,7 @@ export default function HeadlineNotification() {
   return (
     <div
       id="headline-notification"
-      className="fixed inset-0 flex items-center justify-center z-[45] pointer-events-none px-3 sm:px-4"
+      className="absolute inset-0 z-[38] flex items-center justify-center pointer-events-none rounded-lg px-2 sm:px-3"
       style={{
         transition: 'opacity 0.1s ease-out',
         opacity: headlineExiting ? 0 : 1,
@@ -42,7 +42,7 @@ export default function HeadlineNotification() {
       aria-live="assertive"
     >
       <div
-        className="oracle-intel-panel rounded-xl max-w-[min(100vw-1.5rem,40rem)] w-full mx-auto overflow-hidden border-2 shadow-2xl"
+        className="oracle-intel-panel pointer-events-none rounded-xl max-w-[min(100vw-1.5rem,40rem)] w-full mx-auto overflow-hidden border-2 shadow-2xl"
         style={{
           backgroundColor: 'rgba(8,6,12,0.97)',
           borderColor: '#BF00FF',
@@ -92,10 +92,10 @@ export default function HeadlineNotification() {
           </div>
         </div>
 
-        {/* Footer: TERMINAL LOCKED dimmed left; PROCESSING bright neon purple right */}
+        {/* Footer: manual actions still available (FOLD/HOLD strip below chart); PROCESSING on feed */}
         <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#BF00FF]/40 bg-black/50">
           <span className="font-mono text-[11px] sm:text-xs tracking-wider uppercase text-white/75">
-            TERMINAL LOCKED
+            MANUAL OVERRIDE LIVE
           </span>
           <span className="font-mono text-[11px] sm:text-xs tracking-wider font-medium" style={{ color: '#e879f9' }}>
             ● PROCESSING ENCRYPTED FEED…
