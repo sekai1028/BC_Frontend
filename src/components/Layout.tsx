@@ -26,6 +26,7 @@ export default function Layout({ children }: LayoutProps) {
   const setGold = useGameStore((s) => s.setGold)
   const setStats = useGameStore((s) => s.setStats)
   const setMercyPotUpdate = useGameStore((s) => s.setMercyPotUpdate)
+  const setSignalsDetected = useGameStore((s) => s.setSignalsDetected)
   const isRunning = useGameStore((s) => s.isRunning)
   const setWagerCap = useGameStore((s) => s.setWagerCap)
   const setLevelUpRank = useGameStore((s) => s.setLevelUpRank)
@@ -98,6 +99,16 @@ export default function Layout({ children }: LayoutProps) {
     return () => { socket.off('mercy-pot-update', onMercy) }
   }, [socket, setMercyPotUpdate])
 
+  // Same metric as Mercy Pot signals: `online-count` updates on connect / disconnect / mercy-presence
+  useEffect(() => {
+    if (!socket) return
+    const onCount = (count: number) => {
+      if (typeof count === 'number') setSignalsDetected(count)
+    }
+    socket.on('online-count', onCount)
+    return () => { socket.off('online-count', onCount) }
+  }, [socket, setSignalsDetected])
+
   // GDD 8.1: Oracle passive gold — server sends updated gold every 10s when tab focused
   useEffect(() => {
     if (!socket) return
@@ -153,8 +164,9 @@ export default function Layout({ children }: LayoutProps) {
     location.pathname === '/admin' ||
     (location.pathname === '/' && !token)
 
-  /** On all screen sizes: show only header + page (no sidebar, no chat) for legal/support */
+  /** On all screen sizes: show only header + page (no sidebar, no chat) for about/support (legacy /legal redirects) */
   const pageOnly =
+    location.pathname === '/about' ||
     location.pathname === '/legal' ||
     location.pathname === '/privacy' ||
     location.pathname === '/terms' ||
@@ -196,12 +208,15 @@ export default function Layout({ children }: LayoutProps) {
         <>
           {adminEvent && (
             <div
-              className="fixed top-14 left-1/2 -translate-x-1/2 z-[90] px-4 py-2 rounded font-mono text-sm font-bold animate-in fade-in duration-300"
+              className="fixed top-14 left-1/2 -translate-x-1/2 z-[90] max-w-[min(100vw-1.5rem,36rem)] px-5 py-3 rounded-xl font-mono text-base sm:text-lg font-bold text-center animate-in fade-in duration-300 shadow-2xl backdrop-blur-md"
               style={{
-                background: adminEvent.type === 'golden-rain' ? 'rgba(255,200,0,0.25)' : 'rgba(80,0,0,0.4)',
-                border: `2px solid ${adminEvent.type === 'golden-rain' ? 'rgba(255,200,0,0.8)' : 'rgba(255,0,0,0.6)'}`,
-                color: adminEvent.type === 'golden-rain' ? '#ffc800' : '#ff6666'
+                background: adminEvent.type === 'golden-rain' ? 'rgba(12, 10, 0, 0.94)' : 'rgba(20, 4, 4, 0.94)',
+                border: `2px solid ${adminEvent.type === 'golden-rain' ? 'rgba(255,200,0,0.85)' : 'rgba(255,100,100,0.75)'}`,
+                color: adminEvent.type === 'golden-rain' ? '#ffe14a' : '#ff9a9a',
+                textShadow: '0 2px 4px #000',
               }}
+              role="status"
+              aria-live="polite"
             >
               {adminEvent.type === 'golden-rain' ? 'GOLDEN RAIN — BONUS INCOMING' : 'GREAT BLACKOUT — SYNDICATE LOCKDOWN'}
             </div>
@@ -228,11 +243,11 @@ export default function Layout({ children }: LayoutProps) {
                 `}
               >
                 <div
-                  className={`${mobilePageOnly ? 'min-h-0' : location.pathname === '/' ? 'min-h-[80vh]' : 'min-h-[70vh]'} lg:min-h-0 lg:flex-1 flex justify-center items-stretch`}
+                  className={`${mobilePageOnly ? 'min-h-0' : location.pathname === '/' ? 'min-h-[80vh]' : 'min-h-[70vh]'} lg:min-h-0 lg:flex-1 flex justify-center items-stretch min-w-0 max-w-full`}
                 >
                   {children}
                 </div>
-                {/* Mobile: Holophone + 350×50 ad placeholders — only on Terminal, not on profile/shop/leaderboard/legal */}
+                {/* Mobile: Holophone + 350×50 ad placeholders — only on Terminal, not on profile/shop/leaderboard/about */}
                 {!mobilePageOnly && (
                 <div className="lg:hidden flex-shrink-0 border-t border-white/10 pt-3 mt-2 w-full">
                   <LeftSidebar mobile />

@@ -29,6 +29,7 @@ export default function Terminal() {
     currentWager,
     roundId,
     gold,
+    wagerCap,
     startRound,
     foldRound,
     crashRound,
@@ -71,7 +72,6 @@ export default function Terminal() {
 
   const [wager, setWager] = useState(0)
   const [rotatingTitle, setRotatingTitle] = useState('')
-  const [autoFold, setAutoFold] = useState(false)
   const [gameError, setGameError] = useState<string | null>(null)
   /** Live value at the chart point (from chart when idle, from store when running) */
   const [chartDisplayValue, setChartDisplayValue] = useState(1.0)
@@ -642,7 +642,7 @@ export default function Terminal() {
         <BootOverlay onDismiss={() => setBootDismissed(true)} />
       )}
       {/* Terminal table: fills middle between LeftSidebar and right sidebar; same padding as sidebars */}
-      <div className="w-full h-full min-w-0 min-h-0 flex flex-col flex-1 lg:p-4">
+      <div className="w-full h-full min-w-0 min-h-0 flex flex-col flex-1 pb-1 sm:pb-2 lg:p-4">
         <div
           className={`app-font relative flex flex-col flex-1 min-h-0 w-full min-w-0 rounded-xl overflow-hidden border border-bunker-green/25 ${crashShakeActive ? 'crash-shake' : ''} ${jitterActive ? 'button-jitter' : ''}`}
           style={{
@@ -808,89 +808,147 @@ export default function Terminal() {
               </div>
             </div>
 
-            {/* Bottom Controls — one straight row: align all to same baseline; compact on mobile so all visible */}
-            <div className="shrink-0">
-              <div
-                className="glass-inset grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-1 sm:gap-1.5 md:gap-2 items-center rounded-lg px-1.5 py-1 sm:py-1.5 sm:px-2 sm:py-2 md:px-2 md:pb-2"
-              >
-                {/* Left: SIPHON PAYLOAD + Network */}
-                <div className="flex flex-col gap-1.5 min-w-0">
-                  <WagerInput
-                    value={isRunning ? currentWager : wager}
-                    onChange={setWager}
-                    readOnly={isRunning}
-                    inputOnly
-                  />
-                  {!isRunning && useGameStore.getState().wagerCap < gold && (
-                    <p className="terminal-status-message text-amber-400/90 font-sans">Wager cap: {useGameStore.getState().wagerCap} Gold</p>
-                  )}
-                <div className="flex flex-col gap-1">
-                  <div className="terminal-status-message flex items-center gap-1.5 font-display text-bunker-green">
-                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-bunker-green rounded-full shadow-[0_0_6px_rgba(0,255,65,0.6)]" />
-                    {socket ? 'NETWORK CONNECTED' : 'CONNECTING...'}
-                  </div>
-                  {gameError && (
-                    <div className="terminal-status-message font-sans text-red-400">{gameError}</div>
-                  )}
-                </div>
-                </div>
+            {/* Bottom Controls — Gyazo mockup: large HOLD, chart wager, 2×2 presets (lg+), 1×4 mobile; auto-fold disabled */}
+            <div className="shrink-0 min-w-0">
+              <div className="glass-inset rounded-lg px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 min-w-0 overflow-x-hidden">
+                {!isRunning && gold < 1 ? (
+                  <button
+                    type="button"
+                    onClick={handleSiphon}
+                    className="w-full min-h-[64px] sm:min-h-[76px] py-3 sm:py-4 text-base sm:text-lg font-bold font-display uppercase bg-amber-400 text-black hover:bg-amber-300 transition animate-pulse"
+                    style={{ borderRadius: '14px', boxShadow: '0 0 12px rgba(255,191,0,0.5)' }}
+                  >
+                    SIPHON SCRAP GOLD
+                  </button>
+                ) : (
+                  <>
+                    {/* Mobile / tablet: status strip; left rail only from lg */}
+                    <div className="lg:hidden flex flex-col gap-1.5 pb-2.5 mb-1 border-b border-white/10">
+                      <div className="flex flex-row items-center justify-between gap-2 min-h-[2.25rem]">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-[0_0_8px_rgba(0,255,65,0.55)] ${
+                              socket ? 'bg-bunker-green' : 'bg-amber-400 animate-pulse'
+                            }`}
+                            aria-hidden
+                          />
+                          <span className="text-xs font-display font-bold text-bunker-green uppercase tracking-wide truncate">
+                            {socket ? 'Network connected' : 'Connecting…'}
+                          </span>
+                        </div>
+                        <div
+                          className="flex items-center gap-1.5 shrink-0 opacity-45 pointer-events-none select-none cursor-not-allowed"
+                          title="Auto-fold unavailable"
+                        >
+                          <div
+                            className="relative w-9 h-[18px] bg-[#111b14] border border-white/25 shrink-0"
+                            style={{ borderRadius: '9px' }}
+                            aria-hidden
+                          >
+                            <div className="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white/35 rounded-full" />
+                          </div>
+                          <span className="text-[10px] font-display font-bold text-white/55 uppercase tracking-wide whitespace-nowrap">
+                            Auto-fold off
+                          </span>
+                        </div>
+                      </div>
+                      {gameError && (
+                        <div className="text-xs font-sans text-red-400 font-semibold leading-snug pr-1">{gameError}</div>
+                      )}
+                    </div>
 
-                {/* Middle: 1/4 1/2 MAX + Auto-fold */}
-                <div className="flex flex-col gap-1.5 items-center sm:items-center shrink-0">
-                  <WagerFractionButtons
-                    value={isRunning ? currentWager : wager}
-                    onChange={setWager}
-                    readOnly={isRunning}
-                  />
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setAutoFold(!autoFold)}
-                      className="relative w-10 h-5 sm:w-12 sm:h-6 bg-[#111b14] border border-bunker-green/50 transition-colors shrink-0"
-                      style={{ borderRadius: '10px' }}
+                    <div
+                      className="
+                        flex flex-col gap-3 min-w-0
+                        lg:grid lg:items-stretch lg:gap-x-3 lg:gap-y-3 xl:gap-x-4
+                        lg:grid-cols-[minmax(5.5rem,8rem)_minmax(17rem,1fr)_minmax(10.5rem,12.5rem)]
+                        xl:grid-cols-[minmax(6rem,9rem)_minmax(18rem,1fr)_minmax(11.5rem,14rem)]
+                        min-[1024px]:max-[1279px]:grid-cols-1
+                      "
                     >
-                      <div
-                        className="absolute top-0.5 left-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-bunker-green transition-transform"
-                        style={{
-                          borderRadius: '50%',
-                          transform: autoFold ? 'translateX(20px)' : 'translateX(0px)',
-                        }}
-                      />
-                    </button>
-                    <span className="text-[10px] sm:text-app-sm text-bunker-green/90 font-display uppercase whitespace-nowrap font-medium">
-                      AUTO-FOLD {autoFold ? 'ENABLED' : 'DISABLED'}
-                    </span>
-                  </div>
-                </div>
+                      {/* lg+: auto-fold + network (mockup left rail) */}
+                      <div className="hidden lg:flex flex-col gap-2 min-w-0 justify-center min-[1024px]:max-[1279px]:order-1">
+                        <div
+                          className="flex items-center gap-2 opacity-40 pointer-events-none select-none cursor-not-allowed"
+                          title="Auto-fold unavailable"
+                        >
+                          <div
+                            className="relative w-10 h-5 sm:w-11 sm:h-[22px] bg-[#111b14] border border-white/25 shrink-0"
+                            style={{ borderRadius: '10px' }}
+                            aria-hidden
+                          >
+                            <div className="absolute top-0.5 left-0.5 w-4 h-4 sm:w-[18px] sm:h-[18px] bg-white/35 rounded-full" />
+                          </div>
+                          <span className="text-[10px] sm:text-xs text-white/55 font-display uppercase tracking-wide font-bold leading-snug">
+                            AUTO-FOLD
+                            <br />
+                            DISABLED
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 font-display text-bunker-green text-xs font-bold tracking-wide">
+                            <div className="w-2.5 h-2.5 bg-bunker-green rounded-full shadow-[0_0_6px_rgba(0,255,65,0.6)] shrink-0" />
+                            {socket ? 'NETWORK CONNECTED' : 'CONNECTING...'}
+                          </div>
+                          {gameError && (
+                            <div className="text-xs font-sans text-red-400 font-semibold leading-tight">{gameError}</div>
+                          )}
+                        </div>
+                      </div>
 
-                {/* Right: HOLD / FOLD or GDD 2.5.2 Emergency Siphon when gold < 1 */}
-                <div className="flex items-center justify-center sm:justify-end min-w-[100px] sm:min-w-[160px] shrink-0">
-                  {!isRunning && gold < 1 ? (
-                    <button
-                      type="button"
-                      onClick={handleSiphon}
-                      className="min-w-[100px] sm:min-w-[160px] w-full max-w-[200px] py-2.5 sm:py-4 text-app-sm sm:text-app-base font-bold font-display uppercase bg-amber-400 text-black hover:bg-amber-300 transition animate-pulse"
-                      style={{ borderRadius: '8px', boxShadow: '0 0 12px rgba(255,191,0,0.5)' }}
-                    >
-                      SIPHON SCRAP GOLD
-                    </button>
-                  ) : (
-                    <HoldFoldButton
-                      isRunning={gameState === 'crashed' && crashShowFoldButton ? true : isRunning}
-                      onClick={isRunning ? handleFold : handleHold}
-                      disabled={
-                        gameState === 'crashed' && crashShowFoldButton
-                          ? true
-                          : gameState === 'folded' && !ghostCrashed && !showChartSkipToEnd
-                          ? true
-                          : gameState === 'folded' && ghostCrashed && !resultsMinTimePassed
-                          ? true
-                          : !isRunning && (wager <= 0 || wager > gold || wager > useGameStore.getState().wagerCap)
-                      }
-                      showHoldBreathing={(gameState === 'crashed' || gameState === 'liquidated') && !crashShowFoldButton || gameState === 'folded'}
-                      onPress={() => { setJitterActive(true); setTimeout(() => setJitterActive(false), 120) }}
-                    />
-                  )}
-                </div>
+                      {/* Presets + wager + labels */}
+                      <div className="flex flex-1 min-w-0 flex-col gap-2 min-[1024px]:max-[1279px]:order-2 min-[1024px]:max-[1279px]:w-full">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 min-w-0 w-full">
+                          <span className="text-sm sm:text-base md:text-lg font-display font-bold text-bunker-green uppercase tracking-wide">
+                            Siphon Payload
+                          </span>
+                          <span className="text-xs sm:text-sm md:text-base font-display font-semibold text-amber-400/95 tabular-nums whitespace-nowrap">
+                            Wager cap: {wagerCap} Gold
+                          </span>
+                        </div>
+                        <div className="grid min-w-0 w-full grid-cols-1 min-[420px]:grid-cols-[auto_minmax(0,1fr)] gap-2 sm:gap-3 items-end">
+                          <WagerFractionButtons
+                            value={isRunning ? currentWager : wager}
+                            onChange={setWager}
+                            readOnly={isRunning}
+                            layout="chart"
+                          />
+                          <div className="min-w-0 w-full">
+                            <WagerInput
+                              value={isRunning ? currentWager : wager}
+                              onChange={setWager}
+                              readOnly={isRunning}
+                              inputOnly
+                              inputOnlyNoLabel
+                              chartControls
+                              chartCenterNumber
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="order-3 w-full min-w-0 max-w-full flex items-center justify-center min-[1024px]:max-[1279px]:order-3 lg:justify-end lg:min-w-[10.5rem]">
+                        <HoldFoldButton
+                          size="large"
+                          className="w-full max-w-full min-w-0 sm:max-w-[280px] min-[1024px]:max-[1279px]:max-w-none lg:max-w-none lg:w-full"
+                          isRunning={gameState === 'crashed' && crashShowFoldButton ? true : isRunning}
+                          onClick={isRunning ? handleFold : handleHold}
+                          disabled={
+                            gameState === 'crashed' && crashShowFoldButton
+                              ? true
+                              : gameState === 'folded' && !ghostCrashed && !showChartSkipToEnd
+                              ? true
+                              : gameState === 'folded' && ghostCrashed && !resultsMinTimePassed
+                              ? true
+                              : !isRunning && (wager <= 0 || wager > gold || wager > wagerCap)
+                          }
+                          showHoldBreathing={(gameState === 'crashed' || gameState === 'liquidated') && !crashShowFoldButton || gameState === 'folded'}
+                          onPress={() => { setJitterActive(true); setTimeout(() => setJitterActive(false), 120) }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

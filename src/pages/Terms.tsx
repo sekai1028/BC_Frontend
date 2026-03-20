@@ -13,15 +13,15 @@ const PAGES: React.ReactNode[] = [
   (
     <PageContent key="t1">
       <section className={pageSectionClass}>
-        <h2 className={headingClass}>Agreement between User and HoldorFold.io</h2>
+        <h2 className={headingClass}>Agreement between User and HoldorFold.com</h2>
         <p className={pClass}>
-          Welcome to HoldorFold.io. The HoldorFold.io website (the &quot;Site&quot;) is comprised of various web pages operated by Vector Dayton LLC (&quot;Vector Dayton LLC&quot;). HoldorFold.io is offered to you conditioned on your acceptance without modification of the terms, conditions, and notices contained herein (the &quot;Terms&quot;). Your use of HoldorFold.io constitutes your agreement to all such Terms. Please read these terms carefully, and keep a copy of them for your reference.
+          Welcome to HoldorFold.com. The HoldorFold.com website (the &quot;Site&quot;) is comprised of various web pages operated by Vector Dayton LLC (&quot;Vector Dayton LLC&quot;). HoldorFold.com is offered to you conditioned on your acceptance without modification of the terms, conditions, and notices contained herein (the &quot;Terms&quot;). Your use of HoldorFold.com constitutes your agreement to all such Terms. Please read these terms carefully, and keep a copy of them for your reference.
         </p>
       </section>
       <section className={pageSectionClass}>
-        <h2 className={headingClass}>HoldorFold.io is an E-Commerce Site</h2>
+        <h2 className={headingClass}>HoldorFold.com is an E-Commerce Site</h2>
         <p className={pClass}>
-          HoldorFold.io is a digital entertainment platform and interactive survival experience. The Website provides access to a curated content library, gameplay interfaces, and community features. Users may acquire &apos;Gold,&apos; which is a limited, non-transferable, and revocable license for use solely within the Project Vault ecosystem; Gold has no real-world cash value and does not constitute personal property.
+          HoldorFold.com is a digital entertainment platform and interactive survival experience. The Website provides access to a curated content library, gameplay interfaces, and community features. Users may acquire &apos;Gold,&apos; which is a limited, non-transferable, and revocable license for use solely within the Project Vault ecosystem; Gold has no real-world cash value and does not constitute personal property.
         </p>
         <p className={pClass}>
           The &apos;Mercy Pot&apos; and related metrics are proprietary site content and collective game statistics representing in-game narrative lore. These displays are for entertainment and illustrative purposes only; they do not represent a bank account, escrow fund, stored value, or a &apos;wallet&apos; belonging to the User. Users acknowledge that they have no legal or equitable claim to any funds or values displayed. Vector Dayton LLC reserves the absolute right to utilize its corporate funds for marketing, promotion, or operations at its sole discretion. Any payments made by Vector Dayton LLC are strictly discretionary community incentives or contractual marketing fees paid to independent contractors under separate, specific agreements. Vector Dayton LLC may modify, suspend, or terminate any site feature or incentive program at any time, for any reason, without notice or liability.
@@ -30,7 +30,7 @@ const PAGES: React.ReactNode[] = [
       <section className={pageSectionClass}>
         <h2 className={headingClass}>Electronic Communications</h2>
         <p className={pClass}>
-          Visiting HoldorFold.io or sending emails to Vector Dayton LLC constitutes electronic communications. You consent to receive electronic communications and you agree that all agreements, notices, disclosures and other communications that we provide to you electronically, via email and on the Site, satisfy any legal requirement that such communications be in writing.
+          Visiting HoldorFold.com or sending emails to Vector Dayton LLC constitutes electronic communications. You consent to receive electronic communications and you agree that all agreements, notices, disclosures and other communications that we provide to you electronically, via email and on the Site, satisfy any legal requirement that such communications be in writing.
         </p>
       </section>
     </PageContent>
@@ -46,13 +46,13 @@ const PAGES: React.ReactNode[] = [
       <section className={pageSectionClass}>
         <h2 className={headingClass}>Children Under Thirteen</h2>
         <p className={pClass}>
-          Vector Dayton LLC does not knowingly collect, either online or offline, personal information from persons under the age of thirteen. If you are under 18, you may use HoldorFold.io only with permission of a parent or guardian.
+          Vector Dayton LLC does not knowingly collect, either online or offline, personal information from persons under the age of thirteen. If you are under 18, you may use HoldorFold.com only with permission of a parent or guardian.
         </p>
       </section>
       <section className={pageSectionClass}>
         <h2 className={headingClass}>Cancellation/Refund Policy</h2>
         <p className={pClass}>
-          Users may cancel their account and cease use of the Website at any time. However, HoldorFold.io provides digital services and virtual licenses (&apos;Gold&apos;) that are consumed or granted immediately upon access; therefore, all interactions are final and no refunds, credits, or exchanges will be provided for any reason. Upon cancellation or termination of an account, all virtual currency, game progress, and access to the &apos;Project Vault&apos; ecosystem are immediately forfeited without any right to compensation or reimbursement. Vector Dayton LLC reserves the right to cancel or suspend any account without notice for violations of these Terms.
+          Users may cancel their account and cease use of the Website at any time. However, HoldorFold.com provides digital services and virtual licenses (&apos;Gold&apos;) that are consumed or granted immediately upon access; therefore, all interactions are final and no refunds, credits, or exchanges will be provided for any reason. Upon cancellation or termination of an account, all virtual currency, game progress, and access to the &apos;Project Vault&apos; ecosystem are immediately forfeited without any right to compensation or reimbursement. Vector Dayton LLC reserves the right to cancel or suspend any account without notice for violations of these Terms.
         </p>
       </section>
     </PageContent>
@@ -62,16 +62,16 @@ const PAGES: React.ReactNode[] = [
       <section className={pageSectionClass}>
         <h2 className={headingClass}>Links to Third Party Sites/Third Party Services</h2>
         <p className={pClass}>
-          HoldorFold.io may contain links to other websites (&quot;Linked Sites&quot;). The Linked Sites are not under the control of Vector Dayton LLC and Vector Dayton LLC is not responsible for the contents of any Linked Site, including without limitation any link contained in a Linked Site, or any changes or updates to a Linked Site. Vector Dayton LLC is providing these links to you only as a convenience, and the inclusion of any link does not imply endorsement by Vector Dayton LLC of the site or any association with its operators.
+          HoldorFold.com may contain links to other websites (&quot;Linked Sites&quot;). The Linked Sites are not under the control of Vector Dayton LLC and Vector Dayton LLC is not responsible for the contents of any Linked Site, including without limitation any link contained in a Linked Site, or any changes or updates to a Linked Site. Vector Dayton LLC is providing these links to you only as a convenience, and the inclusion of any link does not imply endorsement by Vector Dayton LLC of the site or any association with its operators.
         </p>
         <p className={pClass}>
-          Certain services made available via HoldorFold.io are delivered by third party sites and organizations. By using any product, service or functionality originating from the HoldorFold.io domain, you hereby acknowledge and consent that Vector Dayton LLC may share such information and data with any third party with whom Vector Dayton LLC has a contractual relationship to provide the requested product, service or functionality on behalf of HoldorFold.io users and customers.
+          Certain services made available via HoldorFold.com are delivered by third party sites and organizations. By using any product, service or functionality originating from the HoldorFold.com domain, you hereby acknowledge and consent that Vector Dayton LLC may share such information and data with any third party with whom Vector Dayton LLC has a contractual relationship to provide the requested product, service or functionality on behalf of HoldorFold.com users and customers.
         </p>
       </section>
       <section className={pageSectionClass}>
         <h2 className={headingClass}>No Unlawful or Prohibited Use/Intellectual Property</h2>
         <p className={pClass}>
-          You are granted a non-exclusive, non-transferable, revocable license to access and use HoldorFold.io strictly in accordance with these terms of use. As a condition of your use of the Site, you warrant to Vector Dayton LLC that you will not use the Site for any purpose that is unlawful or prohibited by these Terms. You may not use the Site in any manner which could damage, disable, overburden, or impair the Site or interfere with any other party&apos;s use and enjoyment of the Site. You may not obtain or attempt to obtain any materials or information through any means not intentionally made available or provided for through the Site.
+          You are granted a non-exclusive, non-transferable, revocable license to access and use HoldorFold.com strictly in accordance with these terms of use. As a condition of your use of the Site, you warrant to Vector Dayton LLC that you will not use the Site for any purpose that is unlawful or prohibited by these Terms. You may not use the Site in any manner which could damage, disable, overburden, or impair the Site or interfere with any other party&apos;s use and enjoyment of the Site. You may not obtain or attempt to obtain any materials or information through any means not intentionally made available or provided for through the Site.
         </p>
         <p className={pClass}>
           All content included as part of the Service, such as text, graphics, logos, images, as well as the compilation thereof, and any software used on the Site, is the property of Vector Dayton LLC or its suppliers and protected by copyright and other laws that protect intellectual property and proprietary rights. You agree to observe and abide by all copyright and other proprietary notices, legends or other restrictions contained in any such content and will not make any changes thereto.
@@ -118,9 +118,9 @@ const PAGES: React.ReactNode[] = [
   (
     <PageContent key="t6">
       <section className={pageSectionClass}>
-        <h2 className={headingClass}>Materials Provided to HoldorFold.io or Posted on Any Vector Dayton LLC Web Page</h2>
+        <h2 className={headingClass}>Materials Provided to HoldorFold.com or Posted on Any Vector Dayton LLC Web Page</h2>
         <p className={pClass}>
-          Vector Dayton LLC does not claim ownership of the materials you provide to HoldorFold.io (including feedback and suggestions) or post, upload, input or submit to any Vector Dayton LLC Site or our associated services (collectively &quot;Submissions&quot;). However, by posting, uploading, inputting, providing or submitting your Submission you are granting Vector Dayton LLC, our affiliated companies and necessary sublicensees permission to use your Submission in connection with the operation of their Internet businesses including, without limitation, the rights to: copy, distribute, transmit, publicly display, publicly perform, reproduce, edit, translate and reformat your Submission; and to publish your name in connection with your Submission.
+          Vector Dayton LLC does not claim ownership of the materials you provide to HoldorFold.com (including feedback and suggestions) or post, upload, input or submit to any Vector Dayton LLC Site or our associated services (collectively &quot;Submissions&quot;). However, by posting, uploading, inputting, providing or submitting your Submission you are granting Vector Dayton LLC, our affiliated companies and necessary sublicensees permission to use your Submission in connection with the operation of their Internet businesses including, without limitation, the rights to: copy, distribute, transmit, publicly display, publicly perform, reproduce, edit, translate and reformat your Submission; and to publish your name in connection with your Submission.
         </p>
         <p className={pClass}>
           No compensation will be paid with respect to the use of your Submission, as provided herein. Vector Dayton LLC is under no obligation to post or use any Submission you may provide and may remove any Submission at any time in Vector Dayton LLC&apos;s sole discretion.
@@ -142,7 +142,7 @@ const PAGES: React.ReactNode[] = [
       <section className={pageSectionClass}>
         <h2 className={headingClass}>International Users</h2>
         <p className={pClass}>
-          The Service is controlled, operated and administered by Vector Dayton LLC from our offices within the USA. If you access the Service from a location outside the USA, you are responsible for compliance with all local laws. You agree that you will not use the Vector Dayton LLC Content accessed through HoldorFold.io in any country or in any manner prohibited by any applicable laws, restrictions or regulations.
+          The Service is controlled, operated and administered by Vector Dayton LLC from our offices within the USA. If you access the Service from a location outside the USA, you are responsible for compliance with all local laws. You agree that you will not use the Vector Dayton LLC Content accessed through HoldorFold.com in any country or in any manner prohibited by any applicable laws, restrictions or regulations.
         </p>
       </section>
       <section className={pageSectionClass}>
@@ -215,13 +215,13 @@ const PAGES: React.ReactNode[] = [
       <section className={pageSectionClass}>
         <h2 className={headingClass}>Changes to Terms</h2>
         <p className={pClass}>
-          Vector Dayton LLC reserves the right, in its sole discretion, to change the Terms under which HoldorFold.io is offered. The most current version of the Terms will supersede all previous versions. Vector Dayton LLC encourages you to periodically review the Terms to stay informed of our updates.
+          Vector Dayton LLC reserves the right, in its sole discretion, to change the Terms under which HoldorFold.com is offered. The most current version of the Terms will supersede all previous versions. Vector Dayton LLC encourages you to periodically review the Terms to stay informed of our updates.
         </p>
       </section>
       <section className={pageSectionClass}>
         <h2 className={headingClass}>Contact Us</h2>
         <p className={pClass}>
-          Email Address: info@holdorfold.io
+          Email Address: info@holdorfold.com
         </p>
         <p className={pClass}>
           <strong>Effective as of January 1, 2026</strong>
@@ -273,7 +273,7 @@ export default function Terms() {
             </button>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <Link to="/legal" className="text-bunker-green hover:underline">← Legal</Link>
+            <Link to="/about" className="text-bunker-green hover:underline">← About</Link>
             <span className="text-white/40">|</span>
             <Link to="/support" className="text-bunker-green hover:underline">Support</Link>
           </div>

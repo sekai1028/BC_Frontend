@@ -33,13 +33,15 @@ export default function Gateway() {
   return (
     <div className="min-h-screen min-h-[100dvh] w-full flex flex-col justify-center items-center p-4 sm:p-6">
       <div className="glass-strong w-full max-w-md rounded-2xl border border-white/10 p-8 sm:p-10 flex flex-col items-center shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-        {/* Logo — click to terminal */}
+        {/* Logo — button-style link to terminal chart */}
         <Link
-          to="/"
-          className="flex items-center justify-center mb-6 hover:opacity-90 transition-opacity"
-          title="Terminal"
+          to="/play"
+          className="flex items-center justify-center mb-6 rounded-xl p-1 -m-1 cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bunker-green/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
+          aria-label="Go to terminal chart"
+          title="Terminal / chart"
         >
-          <img src={aegisIcon} alt="Hold or Fold" className="h-14 w-auto max-w-[200px] sm:h-16 sm:max-w-[240px] object-contain" />
+          <img src={aegisIcon} alt="" className="h-14 w-auto max-w-[200px] sm:h-16 sm:max-w-[240px] object-contain pointer-events-none" />
         </Link>
 
         <div className="w-full border-t border-bunker-green/30 pt-6 pb-2 text-center">

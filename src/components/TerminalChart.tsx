@@ -466,7 +466,7 @@ export default function TerminalChart({ onDisplayValue }: TerminalChartProps) {
       const multToY = (m: number) => baselineY - (m - 1.0) * scale
 
       ctx.strokeStyle = '#00FF4160'
-      ctx.lineWidth = 2
+      ctx.lineWidth = 1
       ctx.setLineDash([6, 4])
       ctx.beginPath()
       ctx.moveTo(0, baselineY)

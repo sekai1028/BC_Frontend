@@ -166,30 +166,40 @@ export default function SuccessBanner() {
       )}
       {/* GDD 2.7.4: Horizontal banner anchored to top of chart; pointer-events-auto on content so buttons work */}
       <div
-        className={`glass-strong w-full border-b-2 p-2 sm:p-3 rounded-b-lg sm:rounded-b-xl success-banner-enter pointer-events-auto relative z-30 ${
+        className={`glass-strong w-full border-b-2 p-3 sm:p-4 rounded-b-lg sm:rounded-b-xl success-banner-enter pointer-events-auto relative z-30 backdrop-blur-md ${
           isVictory ? 'border-bunker-green' : 'border-amber-400/90 tactical-retreat-banner'
         }`}
         style={{
           borderColor: isVictory ? '#00FF41' : '#FF8C00',
           boxShadow: isVictory ? '0 0 28px rgba(0,255,65,0.2)' : '0 0 28px rgba(255,140,0,0.25)',
+          backgroundColor: 'rgba(0,0,0,0.88)',
         }}
       >
         <div className="max-w-4xl mx-auto text-left">
-          {/* Centerpiece: victory (extraction) or tactical retreat headline — GDD 2.7.4; smaller so skip buttons visible */}
+          {/* Centerpiece: victory (extraction) or tactical retreat — larger type + shadow for chart overlay */}
           <div
-            className="text-sm sm:text-app-xl font-bold mb-0.5 sm:mb-1 font-display leading-tight"
-            style={{ color: isVictory ? '#00FF41' : '#FF8C00' }}
+            className="text-base sm:text-xl md:text-2xl font-bold mb-1 sm:mb-1.5 font-display leading-snug"
+            style={{
+              color: isVictory ? '#5CFF7A' : '#FFB347',
+              textShadow: '0 2px 4px #000, 0 0 1px #000',
+            }}
           >
             {victoryHeadline}
           </div>
 
-          {/* Static: Main Payout — Gold #FFD700; Tactical Retreat shows minimal loss */}
-          <div className="text-xs sm:text-app-lg font-bold mb-0.5 font-display" style={{ color: isVictory ? '#FFD700' : profit >= 0 ? '#FFD700' : '#FFBF00' }}>
+          {/* Main payout line */}
+          <div
+            className="text-sm sm:text-lg md:text-xl font-bold mb-0.5 font-display"
+            style={{
+              color: isVictory ? '#FFE566' : profit >= 0 ? '#FFE566' : '#FFBF00',
+              textShadow: '0 2px 4px #000',
+            }}
+          >
             {profit >= 0 ? '+' : ''}
             {formatProfit(profit)} GOLD CREDITS {isVictory ? 'SECURED' : profit >= 0 ? 'SECURED' : 'LOSS MINIMIZED'}
           </div>
           {!isVictory && multiplier < 1 && (
-            <p className="text-amber-200/80 text-app-xs font-sans mt-0.5">
+            <p className="text-amber-100 text-sm font-sans mt-1 leading-snug" style={{ textShadow: '0 1px 3px #000' }}>
               Fold settled at {multiplier.toFixed(3)}x. Server locks the multiplier when it receives your fold — a slight delay can lower it.
             </p>
           )}
@@ -197,10 +207,10 @@ export default function SuccessBanner() {
           {/* Mercy Stat — glows green */}
           {foldMercyContribution > 0 && (
             <div
-              className="text-[10px] sm:text-app-sm mb-0.5 sm:mb-1 font-sans"
+              className="text-xs sm:text-sm mb-1 font-sans font-semibold"
               style={{
-                color: '#00FF41',
-                textShadow: '0 0 8px rgba(0,255,65,0.6)',
+                color: '#7CFF95',
+                textShadow: '0 1px 3px #000, 0 0 8px rgba(0,255,65,0.35)',
               }}
             >
               MERCY POT CONTRIBUTION: +${foldMercyContribution.toFixed(2)}
@@ -209,24 +219,23 @@ export default function SuccessBanner() {
 
           {/* GDD 2.7.4: Leaderboard rank */}
           {leaderboardRank != null && leaderboardRank > 0 && (
-            <div className="text-[10px] sm:text-sm text-white/90 mb-0.5 sm:mb-1 font-terminal">
-              YOUR RANK: <span className="font-bold" style={{ color: '#00FF41' }}>{leaderboardRank.toLocaleString()}</span>
+            <div className="text-xs sm:text-sm text-white mb-0.5 sm:mb-1 font-terminal" style={{ textShadow: '0 1px 2px #000' }}>
+              YOUR RANK: <span className="font-bold" style={{ color: '#7CFF95' }}>{leaderboardRank.toLocaleString()}</span>
               {leaderboardTotalPlayers != null && leaderboardTotalPlayers > 0 && (
-                <span className="text-gray-400 text-[10px] sm:text-xs ml-1.5">of {leaderboardTotalPlayers.toLocaleString()} players</span>
+                <span className="text-gray-300 text-xs sm:text-sm ml-1.5">of {leaderboardTotalPlayers.toLocaleString()} players</span>
               )}
             </div>
           )}
 
           {/* Dynamic FOMO: during ghost run — smoothed at constant rate */}
           {!ghostCrashed && (
-            <div className="text-[10px] sm:text-xs font-terminal mt-1 opacity-90" style={{ color: 'rgba(180,180,180,0.95)' }}>
+            <div className="text-xs sm:text-sm font-terminal mt-1 text-gray-200" style={{ textShadow: '0 1px 2px #000' }}>
               UNREALIZED SYNDICATE SIPHON: {(displayGhostMult || foldMultiplier).toFixed(3)}x
             </div>
           )}
 
-          {/* Max Siphon Missed — only after ghost crash */}
           {ghostCrashed && (
-            <div className="text-[10px] sm:text-xs font-terminal mt-1" style={{ color: 'rgba(255,200,100,0.95)' }}>
+            <div className="text-xs sm:text-sm font-terminal mt-1 text-amber-200" style={{ textShadow: '0 1px 2px #000' }}>
               MAX SIPHON MISSED: {ghostMaxMult.toFixed(3)}x
             </div>
           )}
@@ -258,13 +267,13 @@ export default function SuccessBanner() {
 
           {/* GDD 2.8.3: Post-round guilt trip for Guest — lore card in banner area */}
           {!user && (
-            <div className="mt-2 pt-2 border-t border-white/20">
+            <div className="mt-2 pt-3 border-t border-white/25">
               {profit > 0 && (
-                <p className="text-amber-300/95 text-xs font-terminal">
+                <p className="text-amber-200 text-sm font-terminal leading-snug" style={{ textShadow: '0 1px 3px #000' }}>
                   {GUILT_TRIP_HOOK(profit)}
                 </p>
               )}
-              <p className="text-amber-400/80 text-[10px] font-terminal mt-0.5">
+              <p className="text-amber-300 text-xs sm:text-sm font-terminal mt-1 leading-snug" style={{ textShadow: '0 1px 3px #000' }}>
                 {guiltTripRef.current}
               </p>
             </div>

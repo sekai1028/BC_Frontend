@@ -1,6 +1,6 @@
 /**
  * GDD 20: Admin Command Center — back-end dashboard.
- * Set ADMIN_SECRET in env; enter secret to access. Economy config, Golden Rain/Blackout, Analytics, Reset Gold, Ban Chat.
+ * Set ADMIN_SECRET in env; enter secret to access. Economy config, Golden Rain/Blackout, Analytics, user search, give/reset gold, Ban Chat, Global Chat delete.
  */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -13,11 +13,26 @@ export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false)
   const [config, setConfig] = useState<Record<string, unknown> | null>(null)
   const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null)
-  const [users, setUsers] = useState<{ id: string; username: string; gold: number; bannedFromChat?: boolean }[]>([])
+  type AdminUser = {
+    id: string
+    username: string
+    email?: string | null
+    gold: number
+    bannedFromChat?: boolean
+    rank?: number
+  }
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [userSearchInput, setUserSearchInput] = useState('')
+  const [debouncedUserSearch, setDebouncedUserSearch] = useState('')
+  const [giveGoldAmount, setGiveGoldAmount] = useState<Record<string, string>>({})
+  const [chatMessages, setChatMessages] = useState<
+    { id?: string; username: string; text: string; time?: string; rank?: number; isSystem?: boolean; userId?: string | null }[]
+  >([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const headers = () => ({ 'Content-Type': 'application/json', 'X-Admin-Secret': secret })
+  const adminHeaders = () => ({ 'X-Admin-Secret': secret })
 
   useEffect(() => {
     if (!secret) return
@@ -33,21 +48,59 @@ export default function Admin() {
   }, [secret])
 
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedUserSearch(userSearchInput.trim()), 350)
+    return () => clearTimeout(t)
+  }, [userSearchInput])
+
+  useEffect(() => {
     if (!authenticated || !secret) return
     fetch(`${API_URL}/api/admin/analytics`, { headers: headers() })
       .then((r) => r.json())
       .then(setAnalytics)
       .catch(() => {})
-    fetch(`${API_URL}/api/admin/users`, { headers: headers() })
+    fetch(`${API_URL}/api/admin/chat/messages?limit=100`, { headers: adminHeaders() })
       .then((r) => r.json())
-      .then((data) => setUsers(data.users || []))
-      .catch(() => {})
+      .then((data) => setChatMessages(Array.isArray(data.messages) ? data.messages : []))
+      .catch(() => setChatMessages([]))
   }, [authenticated, secret])
 
+  useEffect(() => {
+    if (!authenticated || !secret) return
+    const q = debouncedUserSearch ? `?q=${encodeURIComponent(debouncedUserSearch)}` : ''
+    fetch(`${API_URL}/api/admin/users${q}`, { headers: headers() })
+      .then((r) => r.json())
+      .then((data) => setUsers(data.users || []))
+      .catch(() => setUsers([]))
+  }, [authenticated, secret, debouncedUserSearch])
+
   const refetchUsers = () => {
-    fetch(`${API_URL}/api/admin/users`, { headers: headers() })
+    const q = debouncedUserSearch ? `?q=${encodeURIComponent(debouncedUserSearch)}` : ''
+    fetch(`${API_URL}/api/admin/users${q}`, { headers: headers() })
       .then((r) => r.json())
       .then((d) => setUsers(d.users || []))
+  }
+
+  const refetchChatMessages = () => {
+    fetch(`${API_URL}/api/admin/chat/messages?limit=100`, { headers: adminHeaders() })
+      .then((r) => r.json())
+      .then((data) => setChatMessages(Array.isArray(data.messages) ? data.messages : []))
+      .catch(() => {})
+  }
+
+  const deleteChatMessage = (messageId: string) => {
+    if (!messageId || loading) return
+    setLoading(true)
+    setError('')
+    fetch(`${API_URL}/api/admin/chat/messages/${messageId}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    })
+      .then((r) => {
+        if (!r.ok) return r.json().then((j) => Promise.reject(new Error(j.message || 'Delete failed')))
+        refetchChatMessages()
+      })
+      .catch((e) => setError(e?.message || 'Delete failed'))
+      .finally(() => setLoading(false))
   }
 
   const trigger = (path: string, body?: object) => {
@@ -58,9 +111,37 @@ export default function Admin() {
       headers: headers(),
       body: body ? JSON.stringify(body) : undefined
     })
-      .then((r) => r.json())
-      .then(() => { if (path === 'reset-gold' || path === 'ban-chat') refetchUsers() })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(data.message || 'Request failed')
+        if (path === 'reset-gold' || path === 'ban-chat') refetchUsers()
+      })
       .catch((e) => setError(e?.message || 'Request failed'))
+      .finally(() => setLoading(false))
+  }
+
+  const giveGoldToUser = (userId: string) => {
+    const raw = giveGoldAmount[userId]?.trim()
+    const amount = Number(raw)
+    if (!userId || !Number.isFinite(amount) || amount <= 0) {
+      setError('Enter a positive gold amount to give.')
+      setTimeout(() => setError(''), 5000)
+      return
+    }
+    setLoading(true)
+    setError('')
+    fetch(`${API_URL}/api/admin/give-gold`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ userId, amount }),
+    })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(data.message || 'Give gold failed')
+        setGiveGoldAmount((m) => ({ ...m, [userId]: '' }))
+        refetchUsers()
+      })
+      .catch((e) => setError(e?.message || 'Give gold failed'))
       .finally(() => setLoading(false))
   }
 
@@ -162,6 +243,79 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Global Chat moderation */}
+        <section className="glass-green rounded-2xl p-6">
+          <h2 className="text-bunker-green font-bold text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
+            <span className="w-1 h-4 bg-bunker-green rounded" />
+            Global Chat — delete messages
+          </h2>
+          <p className="text-white/50 text-xs mb-4">
+            Remove any user message from the database; all connected clients drop it live. Oracle/system lines can be deleted too if they have an id.
+          </p>
+          <div className="flex gap-2 mb-4">
+            <button
+              type="button"
+              onClick={() => refetchChatMessages()}
+              disabled={loading}
+              className="px-3 py-2 rounded-xl border border-white/20 text-white/80 hover:border-bunker-green/50 text-xs disabled:opacity-50"
+            >
+              Refresh list
+            </button>
+          </div>
+          <div className="glass-inset overflow-x-auto rounded-xl border border-white/10 max-h-[min(420px,50vh)] overflow-y-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="sticky top-0 z-[1] bg-black/80 backdrop-blur border-b border-bunker-green/30">
+                <tr>
+                  <th className="py-2 px-3 font-semibold text-bunker-green">When</th>
+                  <th className="py-2 px-3 font-semibold text-bunker-green">User</th>
+                  <th className="py-2 px-3 font-semibold text-bunker-green">Message</th>
+                  <th className="py-2 px-3 font-semibold text-bunker-green w-24">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chatMessages.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 px-3 text-white/40 text-center">
+                      No messages loaded.
+                    </td>
+                  </tr>
+                ) : (
+                  [...chatMessages].reverse().map((m, i) => (
+                    <tr
+                      key={m.id || `${i}-${m.username}-${m.text}`}
+                      className={`border-b border-white/5 ${i % 2 === 0 ? 'bg-white/[0.02]' : ''}`}
+                    >
+                      <td className="py-2 px-3 text-white/50 whitespace-nowrap text-xs">
+                        {m.time ? `${m.time}${m.time === 'now' ? '' : ' ago'}` : '—'}
+                      </td>
+                      <td className="py-2 px-3 text-white/90 text-xs max-w-[120px] truncate" title={m.username}>
+                        {m.isSystem ? <span className="text-amber-400/90">[sys]</span> : null}{' '}
+                        {m.rank != null ? `(${m.rank}) ` : ''}
+                        {m.username}
+                      </td>
+                      <td className="py-2 px-3 text-white/80 text-xs break-words max-w-md">{m.text}</td>
+                      <td className="py-2 px-3">
+                        {m.id ? (
+                          <button
+                            type="button"
+                            onClick={() => deleteChatMessage(m.id!)}
+                            disabled={loading}
+                            className="px-2 py-1 rounded border border-red-500/50 text-red-400 hover:bg-red-500/20 text-xs disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        ) : (
+                          <span className="text-white/30 text-xs">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         {/* Live Ops */}
         <section className="glass-green rounded-2xl p-6">
           <h2 className="text-bunker-green font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -244,63 +398,131 @@ export default function Admin() {
 
         {/* Users */}
         <section className="glass-green rounded-2xl p-6">
-          <h2 className="text-bunker-green font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
+          <h2 className="text-bunker-green font-bold text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
             <span className="w-1 h-4 bg-bunker-green rounded" />
-            Users — Reset Gold / Ban Chat
+            Users — search, give gold, reset, ban chat
           </h2>
+          <p className="text-white/50 text-xs mb-3">
+            Search by username, email, or paste a 24-character user id. Results update as you type (short delay).
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center mb-4">
+            <input
+              type="search"
+              placeholder="Search username, email, or user id…"
+              value={userSearchInput}
+              onChange={(e) => setUserSearchInput(e.target.value)}
+              className="glass-inset flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-white/15 text-white font-mono text-sm placeholder-white/35 focus:outline-none focus:border-bunker-green/50"
+            />
+            <button
+              type="button"
+              onClick={() => refetchUsers()}
+              disabled={loading}
+              className="px-4 py-2.5 rounded-xl border border-white/20 text-white/80 hover:border-bunker-green/50 text-xs shrink-0 disabled:opacity-50"
+            >
+              Refresh
+            </button>
+          </div>
           <div className="glass-inset overflow-x-auto rounded-xl border border-white/10">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm min-w-[640px]">
               <thead>
                 <tr className="border-b border-bunker-green/30 bg-bunker-green/5">
-                  <th className="py-3 px-4 font-semibold text-bunker-green">Username</th>
-                  <th className="py-3 px-4 font-semibold text-bunker-green">Gold</th>
-                  <th className="py-3 px-4 font-semibold text-bunker-green">Status</th>
-                  <th className="py-3 px-4 font-semibold text-bunker-green">Actions</th>
+                  <th className="py-3 px-3 font-semibold text-bunker-green">Username</th>
+                  <th className="py-3 px-3 font-semibold text-bunker-green">Email</th>
+                  <th className="py-3 px-3 font-semibold text-bunker-green">User id</th>
+                  <th className="py-3 px-3 font-semibold text-bunker-green">Gold</th>
+                  <th className="py-3 px-3 font-semibold text-bunker-green">Status</th>
+                  <th className="py-3 px-3 font-semibold text-bunker-green">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {users.slice(0, 100).map((u, i) => (
-                  <tr
-                    key={u.id}
-                    className={`border-b border-white/5 hover:bg-white/[0.04] transition ${i % 2 === 0 ? 'bg-white/[0.02]' : ''}`}
-                  >
-                    <td className="py-2.5 px-4 text-white font-medium">{u.username}</td>
-                    <td className="py-2.5 px-4 text-bunker-yellow">{Number(u.gold).toFixed(2)}</td>
-                    <td className="py-2.5 px-4">
-                      {u.bannedFromChat ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/40">
-                          Chat banned
-                        </span>
-                      ) : (
-                        <span className="text-white/50 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-4 flex flex-wrap gap-2">
-                      <button
-                        onClick={() => resetGold(u.id)}
-                        className="px-2.5 py-1 rounded border border-amber-500/50 text-amber-400 hover:bg-amber-500/20 text-xs transition"
-                      >
-                        Reset gold
-                      </button>
-                      <button
-                        onClick={() => banChat(u.id, !u.bannedFromChat)}
-                        className={`px-2.5 py-1 rounded border text-xs transition ${
-                          u.bannedFromChat
-                            ? 'border-bunker-green/50 text-bunker-green hover:bg-bunker-green/20'
-                            : 'border-red-500/50 text-red-400 hover:bg-red-500/20'
-                        }`}
-                      >
-                        {u.bannedFromChat ? 'Unban chat' : 'Ban chat'}
-                      </button>
+                {users.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 px-4 text-center text-white/45 text-sm">
+                      {debouncedUserSearch ? 'No users match this search.' : 'No users loaded.'}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  users.map((u, i) => (
+                    <tr
+                      key={u.id}
+                      className={`border-b border-white/5 hover:bg-white/[0.04] transition ${i % 2 === 0 ? 'bg-white/[0.02]' : ''}`}
+                    >
+                      <td className="py-2.5 px-3 text-white font-medium whitespace-nowrap" title={u.id}>
+                        {u.rank != null ? <span className="text-white/50 text-xs">({u.rank}) </span> : null}
+                        {u.username}
+                      </td>
+                      <td className="py-2.5 px-3 text-white/70 text-xs max-w-[140px] truncate" title={u.email || ''}>
+                        {u.email || '—'}
+                      </td>
+                      <td className="py-2.5 px-3 text-white/45 font-mono text-[10px] max-w-[100px] truncate" title={u.id}>
+                        {u.id}
+                      </td>
+                      <td className="py-2.5 px-3 text-bunker-yellow whitespace-nowrap">{Number(u.gold).toFixed(2)}</td>
+                      <td className="py-2.5 px-3">
+                        {u.bannedFromChat ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/40">
+                            Chat banned
+                          </span>
+                        ) : (
+                          <span className="text-white/50 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <div className="flex flex-col gap-2 min-w-[200px]">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <input
+                              type="number"
+                              min={0}
+                              step="any"
+                              placeholder="Gold +"
+                              value={giveGoldAmount[u.id] ?? ''}
+                              onChange={(e) => setGiveGoldAmount((m) => ({ ...m, [u.id]: e.target.value }))}
+                              className="w-24 px-2 py-1 rounded-lg border border-bunker-green/30 bg-black/30 text-white text-xs font-mono focus:outline-none focus:ring-1 focus:ring-bunker-green/40"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => giveGoldToUser(u.id)}
+                              disabled={loading}
+                              className="px-2.5 py-1 rounded border border-bunker-green/60 text-bunker-green hover:bg-bunker-green/15 text-xs transition disabled:opacity-50"
+                            >
+                              Give gold
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => resetGold(u.id)}
+                              disabled={loading}
+                              className="px-2.5 py-1 rounded border border-amber-500/50 text-amber-400 hover:bg-amber-500/20 text-xs transition disabled:opacity-50"
+                            >
+                              Reset gold
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => banChat(u.id, !u.bannedFromChat)}
+                              disabled={loading}
+                              className={`px-2.5 py-1 rounded border text-xs transition disabled:opacity-50 ${
+                                u.bannedFromChat
+                                  ? 'border-bunker-green/50 text-bunker-green hover:bg-bunker-green/20'
+                                  : 'border-red-500/50 text-red-400 hover:bg-red-500/20'
+                              }`}
+                            >
+                              {u.bannedFromChat ? 'Unban chat' : 'Ban chat'}
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-          {users.length > 100 && (
-            <p className="text-white/50 text-xs mt-2">Showing first 100 of {users.length} users.</p>
-          )}
+          <p className="text-white/50 text-xs mt-2">
+            {debouncedUserSearch
+              ? `Search results: ${users.length} user(s).`
+              : `Recent users (newest first, up to 500). Use search to find someone not in this list.`}
+          </p>
         </section>
       </main>
     </div>

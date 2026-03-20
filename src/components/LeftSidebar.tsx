@@ -59,65 +59,43 @@ export default function LeftSidebar({ mobile }: LeftSidebarProps) {
         />
       </div>
 
-      {/* Mobile: 350×50 banner placeholders (two) — prominent for visibility and tap targets */}
+      {/* Mobile: 350×50 banner slots (two) — reserved space, no placeholder copy */}
       {mobile && (
         <>
-          <div className="glass-panel overflow-hidden flex flex-col w-full rounded-xl flex-shrink-0 p-2 sm:p-4 min-h-[100px]">
-            <div className="flex flex-col items-center justify-center flex-1 gap-1 sm:gap-2">
-              <span className="px-2.5 py-1 sm:px-5 sm:py-2 text-[10px] sm:text-app-sm font-bold font-display uppercase tracking-wider text-black rounded-full" style={{ background: '#53FF1A' }}>ADVERTISEMENT</span>
-              <span className="text-white/70 text-xs sm:text-app-base font-sans">350×50 Space</span>
-            </div>
-            <div className="w-full text-center text-[10px] sm:text-app-xs uppercase tracking-wider text-white/55 font-display py-1 sm:py-2 border-t border-white/5">ADS NOW</div>
+          <div
+            className="glass-panel overflow-hidden flex flex-col w-full rounded-xl flex-shrink-0 p-2 sm:p-4 min-h-[100px]"
+            aria-hidden
+          >
+            <div className="flex-1 min-h-[52px] rounded-lg border border-dashed border-white/10 bg-black/15" />
           </div>
-          <div className="glass-panel overflow-hidden flex flex-col w-full rounded-xl flex-shrink-0 p-2 sm:p-4 min-h-[100px]">
-            <div className="flex flex-col items-center justify-center flex-1 gap-1 sm:gap-2">
-              <span className="px-2.5 py-1 sm:px-5 sm:py-2 text-[10px] sm:text-app-sm font-bold font-display uppercase tracking-wider text-black rounded-full" style={{ background: '#53FF1A' }}>ADVERTISEMENT</span>
-              <span className="text-white/70 text-xs sm:text-app-base font-sans">350×50 Space</span>
-            </div>
-            <div className="w-full text-center text-[10px] sm:text-app-xs uppercase tracking-wider text-white/55 font-display py-1 sm:py-2 border-t border-white/5">ADS NOW</div>
+          <div
+            className="glass-panel overflow-hidden flex flex-col w-full rounded-xl flex-shrink-0 p-2 sm:p-4 min-h-[100px]"
+            aria-hidden
+          >
+            <div className="flex-1 min-h-[52px] rounded-lg border border-dashed border-white/10 bg-black/15" />
           </div>
         </>
       )}
 
-      {/* Advertisement — 250×300; hidden when mobile (we show 350×50 instead) */}
+      {/* Banner slot 250×300; hidden when mobile (350×50 slots above) */}
       {!mobile && (
       <div
         className="glass-panel overflow-hidden flex flex-col w-full lg:hidden rounded-xl flex-shrink-0 p-2 sm:p-3"
         style={{ width: '100%', aspectRatio: '250 / 300', maxHeight: 'min(300px, 32vh)' }}
+        aria-hidden
       >
-        <div className="flex flex-col items-center justify-center flex-1 gap-1 sm:gap-2">
-          <span
-            className="px-2 py-1 sm:px-5 sm:py-2.5 text-[10px] sm:text-app-xs font-bold font-display uppercase tracking-wider text-black rounded-full"
-            style={{ background: '#53FF1A' }}
-          >
-            ADVERTISEMENT
-          </span>
-          <span className="text-white/50 text-[10px] sm:text-app-xs font-sans tracking-wide">250×300</span>
-        </div>
-        <div className="w-full text-center text-[10px] sm:text-app-xs uppercase tracking-wider text-white/60 font-display py-1 sm:py-2 border-t border-white/5">
-          ADS NOW
-        </div>
+        <div className="flex-1 min-h-0 rounded-lg border border-dashed border-white/10 bg-black/15" />
       </div>
       )}
 
-      {/* 250×250 ad slot — bottom of sidebar (desktop only) */}
+      {/* Banner slot ~250×250 — bottom of sidebar (desktop only) */}
       {!mobile && (
       <div
         className="glass-panel overflow-hidden flex flex-col w-full mx-auto rounded-xl flex-shrink-0 p-2 sm:p-3"
         style={{ width: '100%', aspectRatio: '1', maxWidth: 350, maxHeight: 250 }}
+        aria-hidden
       >
-        <div className="flex-1 flex flex-col items-center justify-center gap-1 sm:gap-2 min-h-0">
-          <span
-            className="px-2 py-1 sm:px-5 sm:py-2.5 text-[10px] sm:text-app-xs font-bold font-display uppercase tracking-wider text-black rounded-full"
-            style={{ background: '#53FF1A' }}
-          >
-            ADVERTISEMENT
-          </span>
-          <span className="text-white/45 text-[10px] sm:text-app-xs font-sans tracking-wide">250×250</span>
-        </div>
-        <div className="w-full text-center text-[10px] sm:text-app-xs uppercase tracking-wider text-white/50 font-display py-1 sm:py-2 border-t border-white/5">
-          ADS NOW
-        </div>
+        <div className="flex-1 min-h-0 rounded-lg border border-dashed border-white/10 bg-black/15" />
       </div>
       )}
     </aside>

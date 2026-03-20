@@ -12,6 +12,9 @@ import powerLevelIcon from '../public/asset/power_level.svg'
 
 const DROPDOWN_GAP = 4
 const DROPDOWN_WIDTH = 200
+const LORE_URL = 'https://timingthetop.com'
+
+const menuNavClass = 'px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm'
 
 /** GDD 6.1: Intensity level from signals count */
 function getMercyIntensityLevel(signals: number): 1 | 2 | 3 | 4 | 5 {
@@ -31,7 +34,9 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
   const [mercyDisplay, setMercyDisplay] = useState(mercyPot)
+  const [mercyJiggle, setMercyJiggle] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const prevMercyUpdatedAtRef = useRef(0)
   const intensityLevel = getMercyIntensityLevel(signalsDetected)
   const mercyIntensityClass = intensityLevel >= 2 ? `mercy-intensity-${intensityLevel}` : ''
 
@@ -60,6 +65,18 @@ export default function Header() {
     return () => clearInterval(t)
   }, [mercyPot, mercyPotVelocity, mercyPotUpdatedAt])
 
+  // Brief banner jiggle when server pushes mercy-pot-update (new timestamp)
+  useEffect(() => {
+    if (mercyPotUpdatedAt <= 0) return
+    const prev = prevMercyUpdatedAtRef.current
+    prevMercyUpdatedAtRef.current = mercyPotUpdatedAt
+    if (prev === 0) return
+    if (mercyPotUpdatedAt === prev) return
+    setMercyJiggle(true)
+    const t = window.setTimeout(() => setMercyJiggle(false), 500)
+    return () => clearTimeout(t)
+  }, [mercyPotUpdatedAt])
+
   // Mercy Pot: fixed 5 decimals after the dot (e.g. 149.52783)
   const formatMercyPot = (amount: number) => {
     const n = Math.max(0, amount)
@@ -83,8 +100,16 @@ export default function Header() {
     {/* Mobile layout: compact top bar + 2×2 stats grid (below lg) */}
     <header className="lg:hidden w-full flex flex-col gap-1.5">
       <div className="glass-strong flex items-center justify-between px-2 py-1.5 w-full rounded-lg border border-white/10 min-h-[40px]">
-        <Link to="/" className="flex items-center justify-center flex-shrink-0 w-7 h-6">
-          <img src={aegisIcon} alt="Aegis" className="w-full h-full object-contain" />
+        <Link
+          to="/play"
+          onClick={() => setMenuOpen(false)}
+          className="flex items-center justify-center flex-shrink-0 w-7 h-6 rounded-md cursor-pointer
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bunker-green/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50
+            hover:opacity-90 active:opacity-80 transition-opacity"
+          aria-label="Go to home — terminal chart"
+          title="Terminal / chart"
+        >
+          <img src={aegisIcon} alt="" className="w-full h-full object-contain pointer-events-none" />
         </Link>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <Link
@@ -134,11 +159,13 @@ export default function Header() {
           </div>
         </div>
         <div className={`glass-card flex flex-col justify-center rounded-md border border-white/10 p-1.5 min-h-[44px] ${mercyIntensityClass}`}>
-          <div className="flex items-center gap-1.5">
-            <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-5 object-contain flex-shrink-0" />
-            <div className="min-w-0 flex-1">
-              <div className="font-display uppercase text-[10px] text-[#2DE85C] tracking-wider">Global Mercy Pot</div>
-              <div className="font-sans font-bold text-xs text-[#21AD55] leading-tight">{formatMercyPot(mercyDisplay)}</div>
+          <div className={`min-w-0 w-full ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
+            <div className="flex items-center gap-1.5">
+              <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-5 object-contain flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="font-display uppercase text-[10px] text-[#2DE85C] tracking-wider">Global Mercy Pot</div>
+                <div className="font-sans font-bold text-xs text-[#21AD55] leading-tight">{formatMercyPot(mercyDisplay)}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -155,16 +182,18 @@ export default function Header() {
         gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 xl:gap-6 2xl:gap-10
         py-1.5 sm:py-2 md:py-2 lg:py-2.5 xl:py-3 2xl:py-3
         px-1 sm:px-1 md:px-2 lg:px-2 xl:px-3 2xl:px-4">
-          {/* Aegis logo — click to go to first booth (home/terminal) from any page */}
+          {/* Aegis logo — button-style link to terminal chart from any page */}
           <Link
-            to="/"
+            to="/play"
             className="glass-card flex items-center justify-center flex-shrink-0
               w-[72px] h-[32px] sm:w-[80px] sm:h-[36px] md:w-[100px] md:h-[40px] lg:w-[140px] lg:h-[52px] xl:w-[200px] xl:h-[64px] 2xl:w-[260px] 2xl:h-[76px]
-              hover:opacity-90 transition-opacity"
+              cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bunker-green/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
             style={{ marginLeft: 2, borderRadius: 10 }}
-            title="Go to terminal"
+            aria-label="Go to home — terminal chart"
+            title="Terminal / chart"
           >
-            <img src={aegisIcon} alt="Aegis" className="w-full h-full object-contain" />
+            <img src={aegisIcon} alt="" className="w-full h-full object-contain pointer-events-none" />
           </Link>
 
           {/* Gold balance */}
@@ -215,21 +244,23 @@ export default function Header() {
               pl-3 pr-3 pt-2 pb-2 sm:pl-3 sm:pr-4 sm:pt-2.5 sm:pb-2 md:pl-3.5 md:pr-4 md:pt-2.5 md:pb-2.5 lg:pl-4 lg:pr-5 lg:pt-3 lg:pb-3 xl:pl-4 xl:pr-6 xl:pt-3 xl:pb-3 2xl:pl-5 2xl:pr-6 2xl:pt-3.5 2xl:pb-3.5`}
             style={{ borderRadius: 12 }}
           >
-            <div className="flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 lg:gap-2 xl:gap-2.5 2xl:gap-3 flex-1 min-h-0 min-w-0">
-              <div className="shrink-0 flex items-center">
-                <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-6 sm:w-7 sm:h-7 md:w-7 md:h-7 lg:w-8 lg:h-8 xl:w-10 xl:h-10 2xl:w-11 2xl:h-[42px] object-contain" />
-              </div>
-              <div className="leading-tight min-w-0 flex-1 overflow-hidden text-center">
-                <div className="font-mono uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-xs leading-tight" style={{ color: '#2DE85C', fontWeight: 500, letterSpacing: '0.06em', lineHeight: 1.2 }}>SSC · GLOBAL MERCY POT</div>
-                <div className="font-extrabold font-mono tabular-nums mercy-value text-[10px] sm:text-xs md:text-xs lg:text-sm xl:text-lg 2xl:text-2xl" style={{ color: '#21AD55', textShadow: '0 0 6px rgba(0,255,0,0.5)', lineHeight: 1.2 }}>
-                  {formatMercyPot(mercyDisplay)}
+            <div className={`flex flex-col flex-1 min-h-0 min-w-0 w-full ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
+              <div className="flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 lg:gap-2 xl:gap-2.5 2xl:gap-3 flex-1 min-h-0 min-w-0">
+                <div className="shrink-0 flex items-center">
+                  <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-6 sm:w-7 sm:h-7 md:w-7 md:h-7 lg:w-8 lg:h-8 xl:w-10 xl:h-10 2xl:w-11 2xl:h-[42px] object-contain" />
+                </div>
+                <div className="leading-tight min-w-0 flex-1 overflow-hidden text-center">
+                  <div className="font-mono uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-xs leading-tight" style={{ color: '#2DE85C', fontWeight: 500, letterSpacing: '0.06em', lineHeight: 1.2 }}>SSC · GLOBAL MERCY POT</div>
+                  <div className="font-extrabold font-mono tabular-nums mercy-value text-[10px] sm:text-xs md:text-xs lg:text-sm xl:text-lg 2xl:text-2xl" style={{ color: '#21AD55', textShadow: '0 0 6px rgba(0,255,0,0.5)', lineHeight: 1.2 }}>
+                    {formatMercyPot(mercyDisplay)}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="font-mono tracking-wider tabular-nums flex items-center justify-center gap-0.5 sm:gap-1 text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] pt-0.5 sm:pt-1 px-0.5" style={{ letterSpacing: '0.1em' }}>
-              <span className="text-white/55">[ {signalsDetected} signals · </span>
-              <span style={{ color: '#21AD55', textShadow: '0 0 4px rgba(0,255,0,0.4)' }}>×{signalsDetected}</span>
-              <span className="text-white/55"> ]</span>
+              <div className="font-mono tracking-wider tabular-nums flex items-center justify-center gap-0.5 sm:gap-1 text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[9px] 2xl:text-[10px] pt-0.5 sm:pt-1 px-0.5" style={{ letterSpacing: '0.1em' }}>
+                <span className="text-white/55">[ {signalsDetected} signals · </span>
+                <span style={{ color: '#21AD55', textShadow: '0 0 4px rgba(0,255,0,0.4)' }}>×{signalsDetected}</span>
+                <span className="text-white/55"> ]</span>
+              </div>
             </div>
           </div>
 
@@ -313,11 +344,20 @@ export default function Header() {
         <div className="flex flex-col gap-0.5 px-1">
           {user ? (
             <>
-              <Link to="/" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm">Terminal</Link>
-              <Link to="/profile" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm">Exile Profile</Link>
-              <Link to="/shop" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm">Black Market</Link>
-              <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm">Leaderboard</Link>
-              <Link to="/legal" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm">Legal</Link>
+              <Link to="/" onClick={() => setMenuOpen(false)} className={menuNavClass}>Terminal</Link>
+              <Link to="/profile" onClick={() => setMenuOpen(false)} className={menuNavClass}>Exile Profile</Link>
+              <Link to="/shop" onClick={() => setMenuOpen(false)} className={menuNavClass}>Black Market</Link>
+              <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className={menuNavClass}>Leaderboard</Link>
+              <Link to="/about" onClick={() => setMenuOpen(false)} className={menuNavClass}>About</Link>
+              <a
+                href={LORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMenuOpen(false)}
+                className={menuNavClass}
+              >
+                Lore ↗
+              </a>
               <button
                 type="button"
                 onClick={() => { setMenuOpen(false); logout(); navigate('/', { replace: true }) }}
@@ -328,9 +368,19 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link to="/login" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm">Sign in</Link>
+              <Link to="/login" onClick={() => setMenuOpen(false)} className={menuNavClass}>Sign in</Link>
               <Link to="/play" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-bunker-green hover:bg-bunker-green/20 transition text-sm">Play as guest</Link>
-              <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded text-white/95 hover:text-bunker-green hover:bg-white/10 transition text-sm">Leaderboard</Link>
+              <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className={menuNavClass}>Leaderboard</Link>
+              <Link to="/about" onClick={() => setMenuOpen(false)} className={menuNavClass}>About</Link>
+              <a
+                href={LORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMenuOpen(false)}
+                className={menuNavClass}
+              >
+                Lore ↗
+              </a>
             </>
           )}
         </div>

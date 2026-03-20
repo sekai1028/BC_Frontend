@@ -99,6 +99,8 @@ interface GameState {
   setMercyPot: (amount: number) => void
   /** GDD 6: Set total, velocity, signals from server; optional timestamp for interpolation */
   setMercyPotUpdate: (total: number, velocity: number, signalsDetected: number) => void
+  /** Live signal count from `online-count` (same formula as Mercy Pot); keeps header + chat in sync between 10s ticks */
+  setSignalsDetected: (n: number) => void
   setWagerCap: (cap: number) => void
   setStats: (stats: { totalRounds: number; bestStreak: number; winRate: number; avgMultiplier: number }) => void
   /** Update stats locally after a fold when server didn't send stats (e.g. guest). */
@@ -279,6 +281,7 @@ export const useGameStore = create<GameState>((set) => ({
   setMercyPot: (amount) => set({ mercyPot: amount }),
   setMercyPotUpdate: (total, velocity, signalsDetected) =>
     set({ mercyPot: total, mercyPotVelocity: velocity, mercyPotUpdatedAt: Date.now(), signalsDetected }),
+  setSignalsDetected: (signalsDetected) => set({ signalsDetected }),
   setWagerCap: (cap) => set({ wagerCap: cap }),
 
   setStats: (stats) => set({

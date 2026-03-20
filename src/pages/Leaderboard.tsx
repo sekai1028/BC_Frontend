@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { getGuestId } from '../utils/guestIdentity'
 
@@ -35,6 +36,11 @@ export default function Leaderboard() {
   const [sort, setSort] = useState<LeaderboardSort>('biggestExtract')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 10
+  const [searchInput, setSearchInput] = useState('')
+  const [searchResults, setSearchResults] = useState<LeaderboardEntry[] | null>(null)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [searchQueryLabel, setSearchQueryLabel] = useState('')
 
   const loadLeaderboard = () => {
     setLoading(true)
@@ -83,6 +89,49 @@ export default function Leaderboard() {
     loadLeaderboard()
   }, [token, sort, page])
 
+  useEffect(() => {
+    setSearchResults(null)
+    setSearchError(null)
+    setSearchQueryLabel('')
+  }, [sort])
+
+  const runSearch = (e?: FormEvent) => {
+    e?.preventDefault()
+    const q = searchInput.trim()
+    if (!q) {
+      setSearchResults(null)
+      setSearchError(null)
+      setSearchQueryLabel('')
+      return
+    }
+    setSearchLoading(true)
+    setSearchError(null)
+    const url = `${API_URL}/api/leaderboard/search?q=${encodeURIComponent(q)}&sort=${encodeURIComponent(sort)}`
+    fetch(url)
+      .then(async (r) => {
+        const body = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(body?.message || `Search failed (${r.status})`)
+        return body
+      })
+      .then((body) => {
+        const list = Array.isArray(body?.results) ? body.results : []
+        setSearchResults(list)
+        setSearchQueryLabel(typeof body?.query === 'string' ? body.query : q)
+      })
+      .catch((err) => {
+        setSearchError(err?.message || 'Search failed')
+        setSearchResults(null)
+      })
+      .finally(() => setSearchLoading(false))
+  }
+
+  const clearSearch = () => {
+    setSearchInput('')
+    setSearchResults(null)
+    setSearchError(null)
+    setSearchQueryLabel('')
+  }
+
   const totalPages = totalPlayers > 0 ? Math.max(1, Math.ceil(totalPlayers / PAGE_SIZE)) : 1
   const canPrev = page > 1
   const canNext = page < totalPages
@@ -100,6 +149,13 @@ export default function Leaderboard() {
         <div className="glass-green rounded-2xl p-5 sm:p-6 lg:p-7">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
+              <Link
+                to="/play"
+                className="inline-flex items-center gap-1.5 mb-3 font-mono text-xs sm:text-sm text-bunker-green hover:text-bunker-green/90 glass-card px-3 py-2 rounded-xl border border-bunker-green/35 hover:bg-bunker-green/10 transition-colors"
+                aria-label="Back to Terminal"
+              >
+                <span aria-hidden>←</span> Back to Terminal
+              </Link>
               <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-bunker-green mb-2 tracking-tight">Leaderboard</h1>
               <p className="text-white/80 text-sm sm:text-base lg:text-lg">
                 {sort === 'biggestExtract' && 'Highest gold siphoned in a single run'}
@@ -142,6 +198,100 @@ export default function Leaderboard() {
               </button>
             </div>
           </div>
+
+          <form
+            onSubmit={runSearch}
+            className="mb-6 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3"
+          >
+            <label htmlFor="leaderboard-search" className="sr-only">
+              Find player by name
+            </label>
+            <input
+              id="leaderboard-search"
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Paste username from chat…"
+              autoComplete="off"
+              maxLength={64}
+              className="flex-1 min-w-[200px] glass-inset px-4 py-2.5 rounded-xl border border-white/15 text-white font-mono text-sm placeholder:text-white/35 focus:outline-none focus:border-bunker-green/50 focus:ring-1 focus:ring-bunker-green/30"
+            />
+            <div className="flex gap-2 shrink-0">
+              <button
+                type="submit"
+                disabled={searchLoading}
+                className="glass-card px-4 py-2.5 rounded-xl border border-bunker-green/40 text-bunker-green hover:bg-bunker-green/10 disabled:opacity-50 font-mono text-sm transition"
+              >
+                {searchLoading ? 'Searching…' : 'Search'}
+              </button>
+              {(searchResults !== null || searchInput.trim()) && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="glass-card px-4 py-2.5 rounded-xl border border-white/10 text-white/80 hover:bg-white/5 font-mono text-sm transition"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </form>
+          <p className="text-white/50 text-xs font-mono mb-4 -mt-2">
+            Exact name match (ignores case). Rank matches the tab you have selected ({sort === 'biggestExtract' ? 'best single run' : sort === 'totalSiphoned' ? 'total siphoned' : 'graveyard'}).
+          </p>
+
+          {searchError && <p className="text-red-400 mb-4 text-sm font-mono">{searchError}</p>}
+
+          {searchResults !== null && !searchLoading && !searchError && (
+            <div
+              className={`mb-6 rounded-2xl border p-4 sm:p-5 ${sort === 'biggestLoss' ? 'border-amber-400/30 bg-amber-950/20' : 'border-bunker-green/30 bg-bunker-green/5'}`}
+            >
+              <h2 className={`font-mono text-sm font-bold uppercase tracking-wider mb-3 ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>
+                Search: “{searchQueryLabel}”
+              </h2>
+              {searchResults.length === 0 ? (
+                <p className="text-white/80 text-sm sm:text-base">
+                  No leaderboard entry with that name. They may use a different name in chat, or haven’t played a ranked round yet.
+                </p>
+              ) : (
+                <div className="overflow-x-auto scrollbar-hide">
+                  <table className="w-full text-left text-sm sm:text-base table-fixed">
+                    <colgroup>
+                      <col className="w-12 sm:w-14" />
+                      <col className="min-w-[120px]" />
+                      <col className="w-28 sm:w-32" />
+                      <col className="w-28 sm:w-32" />
+                    </colgroup>
+                    <thead>
+                      <tr className={`border-b ${sort === 'biggestLoss' ? 'border-amber-400/25' : 'border-bunker-green/30'}`}>
+                        <th className={`py-2 pl-2 sm:pl-3 pr-2 font-semibold tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>#</th>
+                        <th className="py-2 pr-2 text-white/95 font-semibold">Name</th>
+                        <th className="py-2 pr-2 text-white/95 font-semibold tabular-nums">Total siphoned</th>
+                        <th className="py-2 pr-2 text-white/95 font-semibold tabular-nums">{sort === 'biggestExtract' ? 'Best run' : sort === 'biggestLoss' ? 'Most lost' : 'Biggest extract'}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {searchResults.map((e) => {
+                        const lossVal = e.biggestLoss ?? 0
+                        return (
+                          <tr key={`${e.source}-${e.rank}-${e.displayName}-${e.totalSiphoned}`} className="border-b border-white/10">
+                            <td className={`py-3 pl-2 sm:pl-3 pr-2 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>{e.rank}</td>
+                            <td className="py-3 pr-2 text-white/95 truncate" title={e.displayName}>
+                              {e.displayName}
+                              <span className="text-white/40 text-xs ml-1 font-mono">({e.source})</span>
+                            </td>
+                            <td className="py-3 pr-2 text-white/95 font-mono tabular-nums">{e.totalSiphoned.toFixed(2)}</td>
+                            <td className={`py-3 pr-2 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-white/95'}`}>
+                              {sort === 'biggestLoss' ? lossVal.toFixed(2) : e.biggestExtract.toFixed(2)}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
           {error && <p className="text-red-400 mb-4 text-lg">{error}</p>}
 

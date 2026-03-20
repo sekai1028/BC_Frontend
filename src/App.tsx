@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Terminal from './pages/Terminal'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
-import Legal from './pages/Legal'
+import About from './pages/About'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import Support from './pages/Support'
@@ -59,7 +59,8 @@ function App() {
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
           <Route path="/shop" element={<RequireAuth><Shop /></RequireAuth>} />
           <Route path="/intel" element={<Intel />} />
-          <Route path="/legal" element={<Legal />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/legal" element={<Navigate to="/about" replace />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/support" element={<Support />} />

@@ -15,7 +15,7 @@ const PAGES: React.ReactNode[] = [
     <PageContent key="p1">
       <section className={pageSectionClass}>
         <p className={pClass}>
-          This Privacy Policy (&quot;Policy&quot;) applies to HoldorFold.io and Vector Dayton LLC (&quot;Company&quot;) and governs data collection and usage. For the purposes of this Privacy Policy, unless otherwise noted, all references to the Company include HoldorFold.io. The Company&apos;s website is an interactive online platform and social gaming community that provides users with access to digital content, virtual account management, and community engagement features. By using the Company website, you consent to the data practices described in this statement.
+          This Privacy Policy (&quot;Policy&quot;) applies to HoldorFold.com and Vector Dayton LLC (&quot;Company&quot;) and governs data collection and usage. For the purposes of this Privacy Policy, unless otherwise noted, all references to the Company include HoldorFold.com. The Company&apos;s website is an interactive online platform and social gaming community that provides users with access to digital content, virtual account management, and community engagement features. By using the Company website, you consent to the data practices described in this statement.
         </p>
       </section>
       <section className={pageSectionClass}>
@@ -65,7 +65,7 @@ const PAGES: React.ReactNode[] = [
           <li>To provide you with information, products, or services that you request from us</li>
           <li>To provide you with notices about your account</li>
           <li>To carry out the Company&apos;s obligations and enforce our rights arising from any contracts entered between you and us, including for billing and collection</li>
-          <li>To notify you about changes to HoldorFold.io or any products or services we offer or provide through it</li>
+          <li>To notify you about changes to HoldorFold.com or any products or services we offer or provide through it</li>
           <li>In any other way we may describe when you provide the information</li>
           <li>For any other purpose with your consent</li>
         </ul>
@@ -192,7 +192,7 @@ const PAGES: React.ReactNode[] = [
           From time to time, the Company may contact you via email for the purpose of providing announcements, promotional offers, alerts, confirmations, surveys, and/or other general communication. In order to improve our services, we may receive a notification when you open an email from the Company or click on a link therein.
         </p>
         <p className={pClass}>
-          If you would like to stop receiving marketing or promotional communications via email from the Company, you may opt out of such communications by clicking on the &apos;unsubscribe&apos; link at the bottom of our emails or by contacting us directly at support@holdorfold.io.
+          If you would like to stop receiving marketing or promotional communications via email from the Company, you may opt out of such communications by clicking on the &apos;unsubscribe&apos; link at the bottom of our emails or by contacting us directly at support@holdorfold.com.
         </p>
       </section>
     </PageContent>
@@ -215,7 +215,7 @@ const PAGES: React.ReactNode[] = [
         <h2 className={headingClass}>Contact Information</h2>
         <p className={pClass}>
           <strong>Vector Dayton LLC</strong><br />
-          Email Address: info@holdorfold.io
+          Email Address: info@holdorfold.com
         </p>
       </section>
     </PageContent>
@@ -264,7 +264,7 @@ export default function Privacy() {
             </button>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <Link to="/legal" className="text-bunker-green hover:underline">← Legal</Link>
+            <Link to="/about" className="text-bunker-green hover:underline">← About</Link>
             <span className="text-white/40">|</span>
             <Link to="/support" className="text-bunker-green hover:underline">Support</Link>
           </div>

@@ -419,6 +419,12 @@
     letter-spacing: 0;
     vertical-align: middle;
   }
+  /* Terminal chart bottom bar — larger wager number */
+  .terminal-chart-wager-input .terminal-gold-value {
+    font-weight: 700;
+    font-size: clamp(1.25rem, 4.2vw, 2rem);
+    line-height: 1.25;
+  }
   .terminal-fraction-btn {
     font-family: 'Space Grotesk', system-ui, sans-serif;
     font-weight: 700;
@@ -525,5 +531,21 @@
   @keyframes mercy-text-breathing {
     0%, 100% { color: #21AD55; text-shadow: 0 0 6px rgba(0,255,0,0.5); }
     50% { color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.8), 0 0 4px rgba(255,100,0,0.5); }
+  }
+
+  /* One-shot nudge when Mercy Pot receives a server tick */
+  .mercy-pot-jiggle-active {
+    animation: mercy-pot-jiggle 0.48s cubic-bezier(0.36, 0.07, 0.19, 0.97) 1;
+    transform-origin: center center;
+  }
+  @keyframes mercy-pot-jiggle {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    12% { transform: translate3d(-2px, 1px, 0) rotate(-0.9deg); }
+    24% { transform: translate3d(2px, -1px, 0) rotate(0.9deg); }
+    36% { transform: translate3d(-2px, -1px, 0) rotate(-0.5deg); }
+    48% { transform: translate3d(2px, 1px, 0) rotate(0.5deg); }
+    60% { transform: translate3d(-1px, 0, 0) rotate(-0.25deg); }
+    72% { transform: translate3d(1px, 0, 0) rotate(0.25deg); }
+    84% { transform: translate3d(0, 0, 0) rotate(0deg); }
   }
 }

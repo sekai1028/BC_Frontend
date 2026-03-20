@@ -151,8 +151,11 @@ export default function CrashScreen() {
       {/* GDD 2.7.3: #crash-notification — glass panel, red border; click on card also skips */}
       <div
         id="crash-notification"
-        className="glass-strong relative z-20 flex flex-col rounded-2xl max-w-2xl w-full mx-4 p-8 text-center border-2 border-red-500/80"
-        style={{ boxShadow: '0 0 40px rgba(255,0,0,0.15)' }}
+        className="relative z-20 flex flex-col rounded-2xl max-w-[min(100vw-2rem,40rem)] w-full mx-4 p-6 sm:p-8 text-center border-2 border-red-500/90 backdrop-blur-md"
+        style={{
+          backgroundColor: 'rgba(6, 2, 4, 0.96)',
+          boxShadow: '0 0 0 1px rgba(255,80,80,0.4), 0 12px 48px rgba(0,0,0,0.85)',
+        }}
       >
         {/* Header right: LED fast blink 0.4s — system breach */}
         <div
@@ -178,9 +181,13 @@ export default function CrashScreen() {
 
         {isLiquidated ? (
           <>
-            <div className="text-red-500 text-2xl font-bold mb-2 font-terminal">CRITICAL MARGIN CALL DETECTED</div>
-            <div className="text-red-400 text-lg mb-2 font-terminal">SYNDICATE LIQUIDATION ENGINE ACTIVE</div>
-            <p className="text-red-300/90 text-sm mb-4 text-left max-w-md mx-auto font-terminal">
+            <div className="text-red-400 text-2xl sm:text-3xl font-bold mb-2 font-terminal" style={{ textShadow: '0 2px 6px #000' }}>
+              CRITICAL MARGIN CALL DETECTED
+            </div>
+            <div className="text-red-300 text-lg sm:text-xl mb-3 font-terminal" style={{ textShadow: '0 1px 4px #000' }}>
+              SYNDICATE LIQUIDATION ENGINE ACTIVE
+            </div>
+            <p className="text-red-100 text-base mb-4 text-left max-w-md mx-auto font-terminal leading-relaxed" style={{ textShadow: '0 1px 3px #000' }}>
               Trader, you flew too close to the sun. Your debt has exceeded your local collateral. The Shadow
               Syndicate&apos;s black-box algorithms have successfully traced your over-leveraged signal. To prevent a
               total Bunker breach, the AI Oracle has force-closed your position. Your assets have been seized to
@@ -191,11 +198,10 @@ export default function CrashScreen() {
         ) : (
           <>
             {/* Centerpiece: rotating crash headline from pool */}
-            <div className="text-red-500 text-2xl sm:text-3xl font-bold mb-4 font-terminal tracking-wide">
+            <div className="text-red-400 text-2xl sm:text-3xl md:text-4xl font-bold mb-4 font-terminal tracking-wide leading-tight" style={{ textShadow: '0 2px 8px #000' }}>
               {crashHeadline}
             </div>
-            {/* Dynamic loss text */}
-            <p className="text-red-400 text-base mb-4 font-terminal">
+            <p className="text-red-200 text-base sm:text-lg mb-4 font-terminal leading-snug" style={{ textShadow: '0 1px 4px #000' }}>
               The Syndicate successfully recovered {currentWager.toFixed(0)} Gold from your siphon. Don&apos;t let them
               keep it.
             </p>
@@ -216,7 +222,7 @@ export default function CrashScreen() {
         {/* GDD 2.8.3: Guilt trip for Guest — lore card after crash */}
         {!user && (
           <div className="glass-inset mt-4 p-4 rounded-xl border border-amber-500/30 text-left">
-            <p className="text-amber-300/95 text-sm font-terminal">{guiltTrip}</p>
+            <p className="text-amber-100 text-sm sm:text-base font-terminal leading-relaxed" style={{ textShadow: '0 1px 3px #000' }}>{guiltTrip}</p>
           </div>
         )}
 
@@ -235,7 +241,7 @@ export default function CrashScreen() {
             SCAN PROPAGANDA FEED FOR EMERGENCY STIMULUS
           </button>
         )}
-        <p className="mt-4 text-white/50 text-xs font-terminal">Click anywhere to return to chart</p>
+        <p className="mt-4 text-white/80 text-sm font-terminal" style={{ textShadow: '0 1px 2px #000' }}>Click anywhere to return to chart</p>
       </div>
     </div>
   )

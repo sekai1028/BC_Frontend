@@ -12,9 +12,11 @@ interface HoldFoldButtonProps {
   onPress?: () => void
   /** Optional class for layout (e.g. w-full max-w-none on mobile) */
   className?: string
+  /** Primary chart CTA — taller, wider label */
+  size?: 'default' | 'large'
 }
 
-export default function HoldFoldButton({ isRunning, onClick, disabled, showHoldBreathing = false, onPress, className }: HoldFoldButtonProps) {
+export default function HoldFoldButton({ isRunning, onClick, disabled, showHoldBreathing = false, onPress, className, size = 'default' }: HoldFoldButtonProps) {
   const [isPressed, setIsPressed] = useState(false)
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -52,14 +54,19 @@ export default function HoldFoldButton({ isRunning, onClick, disabled, showHoldB
     ? breathingBg
     : holdBg
 
+  const large = size === 'large'
+  const dimClass = large
+    ? 'min-w-0 w-full max-w-full h-[64px] sm:h-[76px] lg:h-[70px] xl:h-[80px] px-3 sm:px-5 lg:px-3 xl:px-8 2xl:px-11'
+    : 'min-w-[110px] sm:min-w-[170px] w-full max-w-[220px] h-[56px] sm:h-[68px] px-5 sm:px-7 shrink-0'
+
   return (
     <button
       ref={buttonRef}
       onClick={handleClick}
       disabled={disabled}
-      className={`hold-fold-old relative overflow-hidden min-w-[110px] sm:min-w-[170px] w-full max-w-[220px] h-[56px] sm:h-[68px] transition-all duration-100 flex items-center justify-between px-5 sm:px-7 shrink-0 text-black font-bold uppercase border ${showBreathing ? 'breathing-glow' : ''} ${className ?? ''}`}
+      className={`hold-fold-old relative overflow-hidden ${dimClass} transition-all duration-100 flex items-center ${large ? 'justify-center gap-2 sm:gap-3' : 'justify-between'} text-black font-bold uppercase border ${showBreathing ? 'breathing-glow' : ''} ${className ?? ''}`}
       style={{
-        borderRadius: 12,
+        borderRadius: large ? 14 : 12,
         background,
         borderColor: isRunning ? 'rgba(255, 214, 122, 0.7)' : 'rgba(79, 245, 74, 0.55)',
         boxShadow: isRunning
@@ -82,13 +89,19 @@ export default function HoldFoldButton({ isRunning, onClick, disabled, showHoldB
           aria-hidden
         />
       )}
-      <span className="font-extrabold font-mono text-[34px] sm:text-[40px] leading-none tracking-[0.12em] drop-shadow-[0_1px_0_rgba(255,255,255,0.15)]">
+      <span
+        className={`font-extrabold font-mono leading-none tracking-[0.12em] drop-shadow-[0_1px_0_rgba(255,255,255,0.15)] shrink-0 ${
+          large
+            ? 'text-[clamp(1.2rem,2.5vw,2.15rem)] xl:text-[2.25rem] 2xl:text-[2.65rem]'
+            : 'text-[34px] sm:text-[40px]'
+        }`}
+      >
         {isRunning ? 'FOLD' : 'HOLD'}
       </span>
       <img
         src={buttonHand}
         alt=""
-        className="w-5 h-5 sm:w-6 sm:h-6 opacity-80"
+        className={large ? 'w-5 h-5 sm:w-6 sm:h-6 xl:w-7 xl:h-7 opacity-80 shrink-0' : 'w-5 h-5 sm:w-6 sm:h-6 opacity-80'}
         style={{ filter: 'brightness(0) contrast(1.1)' }}
         aria-hidden
       />

@@ -31,19 +31,22 @@ export default function HeadlineNotification() {
   return (
     <div
       id="headline-notification"
-      className="fixed inset-0 flex items-center justify-center z-[45] pointer-events-none"
+      className="fixed inset-0 flex items-center justify-center z-[45] pointer-events-none px-3 sm:px-4"
       style={{
         transition: 'opacity 0.1s ease-out',
         opacity: headlineExiting ? 0 : 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(6px)',
       }}
-      aria-hidden
+      role="alert"
+      aria-live="assertive"
     >
       <div
-        className="oracle-intel-panel rounded-xl max-w-2xl w-full mx-4 overflow-hidden border-2"
+        className="oracle-intel-panel rounded-xl max-w-[min(100vw-1.5rem,40rem)] w-full mx-auto overflow-hidden border-2 shadow-2xl"
         style={{
-          backgroundColor: '#000000',
+          backgroundColor: 'rgba(8,6,12,0.97)',
           borderColor: '#BF00FF',
-          boxShadow: '0 0 0 1px #BF00FF, 0 0 20px rgba(191,0,255,0.5), 0 0 40px rgba(191,0,255,0.25)',
+          boxShadow: '0 0 0 1px #BF00FF, 0 0 24px rgba(191,0,255,0.45), 0 12px 40px rgba(0,0,0,0.75)',
           animation: 'headline-enter 0.2s ease-out forwards',
         }}
       >
@@ -72,28 +75,30 @@ export default function HeadlineNotification() {
           />
         </div>
 
-        {/* Main: headline only — more vertical space for larger text */}
-        <div className="px-4 sm:px-6 py-6 sm:py-10 text-center">
-          {/* Primary alert: solid white, larger, readable */}
+        {/* Main: high-contrast copy — large sans, heavy shadow for legibility on busy chart */}
+        <div className="px-4 sm:px-7 py-7 sm:py-10 text-center bg-black/40">
+          <p className="font-mono text-[10px] sm:text-xs font-bold tracking-[0.2em] uppercase text-[#e9d5ff] mb-3 opacity-95">
+            SYSTEM ALERT
+          </p>
           <div
-            className="font-bold text-lg sm:text-xl md:text-2xl uppercase tracking-wide leading-snug text-center text-white"
+            className="font-bold text-xl sm:text-2xl md:text-3xl uppercase tracking-wide leading-snug text-center text-white"
             style={{
-              fontFamily: 'system-ui, sans-serif',
-              textShadow: '0 0 12px rgba(255,255,255,0.5), 0 0 24px rgba(191,0,255,0.2)',
+              fontFamily: 'system-ui, -apple-system, Segoe UI, sans-serif',
+              textShadow: '0 2px 0 #000, 0 0 2px #000, 0 4px 24px rgba(0,0,0,0.9)',
             }}
           >
-            [SYSTEM_ALERT]: {displayedText}
-            <span className="animate-pulse opacity-90 ml-0.5">|</span>
+            {displayedText}
+            <span className="animate-pulse opacity-90 ml-0.5 font-light">|</span>
           </div>
         </div>
 
         {/* Footer: TERMINAL LOCKED dimmed left; PROCESSING bright neon purple right */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-[#BF00FF]/30">
-          <span className="font-mono text-[10px] sm:text-xs tracking-wider uppercase text-white/50">
+        <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#BF00FF]/40 bg-black/50">
+          <span className="font-mono text-[11px] sm:text-xs tracking-wider uppercase text-white/75">
             TERMINAL LOCKED
           </span>
-          <span className="font-mono text-[10px] sm:text-xs tracking-wider" style={{ color: '#BF00FF' }}>
-            ● PROCESSING ENCRYPTED FEED...
+          <span className="font-mono text-[11px] sm:text-xs tracking-wider font-medium" style={{ color: '#e879f9' }}>
+            ● PROCESSING ENCRYPTED FEED…
           </span>
         </div>
       </div>

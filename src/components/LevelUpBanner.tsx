@@ -57,14 +57,24 @@ export default function LevelUpBanner() {
       style={{ animation: 'fadeIn 0.3s ease-out' }}
     >
       <div
-        className={`w-full max-w-3xl rounded-b-lg border-b-2 p-4 font-mono text-center ${
-          isGuestRank1 ? 'bg-black/92 border-amber-400 text-amber-400' : 'bg-black/92 border-bunker-green text-bunker-green'
+        className={`w-full max-w-3xl rounded-b-xl border-b-2 p-4 sm:p-5 font-mono text-center backdrop-blur-md ${
+          isGuestRank1 ? 'border-amber-400' : 'border-bunker-green'
         }`}
         style={{
-          boxShadow: isGuestRank1 ? '0 0 24px rgba(255,191,0,0.35)' : '0 0 24px rgba(0,255,65,0.35)',
+          backgroundColor: 'rgba(4, 6, 5, 0.96)',
+          boxShadow: isGuestRank1
+            ? '0 0 0 1px rgba(251,191,36,0.3), 0 8px 32px rgba(0,0,0,0.75)'
+            : '0 0 0 1px rgba(0,255,65,0.25), 0 8px 32px rgba(0,0,0,0.75)',
         }}
       >
-        <div className="text-2xl sm:text-3xl font-bold">
+        <div
+          className={`text-lg sm:text-2xl md:text-3xl font-bold leading-snug ${
+            isGuestRank1 ? 'text-amber-300' : 'text-bunker-green'
+          }`}
+          style={{
+            textShadow: '0 2px 0 #000, 0 4px 12px rgba(0,0,0,0.9)',
+          }}
+        >
           {isGuestRank1 ? (
             'RANK 1 ACHIEVED. REGISTER YOUR ACCOUNT TO UNLOCK CHAT AND BUNKER ACCESS.'
           ) : (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../store/authStore'
+import { useGameStore } from '../store/gameStore'
 import { useSocket } from '../hooks/useSocket'
 import { playAssetMp3, ASSET } from '../utils/audio'
 
@@ -23,7 +24,7 @@ export default function GlobalChat() {
   const [input, setInput] = useState('')
   const [canSend, setCanSend] = useState(true)
   const [loading, setLoading] = useState(true)
-  const [onlineCount, setOnlineCount] = useState(0)
+  const signalsOnline = useGameStore((s) => s.signalsDetected)
   const [conductAccepted, setConductAccepted] = useState(() => !!localStorage.getItem(CONDUCT_KEY))
   const [showConductModal, setShowConductModal] = useState(false)
   const [reportingId, setReportingId] = useState<string | null>(null)
@@ -72,14 +73,6 @@ export default function GlobalChat() {
       socket.off('chat-message', onMsg)
       socket.off('chat-error', onErr)
     }
-  }, [socket])
-
-  // Listen for online user count from server
-  useEffect(() => {
-    if (!socket) return
-    const onCount = (count: number) => setOnlineCount(typeof count === 'number' ? count : 0)
-    socket.on('online-count', onCount)
-    return () => { socket.off('online-count', onCount) }
   }, [socket])
 
   // Listen for edit/delete broadcasts so all clients stay in sync
@@ -217,7 +210,7 @@ export default function GlobalChat() {
         </div>
         <div className="global-chat-label flex items-center gap-1.5 font-sans mb-1.5 shrink-0">
           <div className="w-1.5 h-1.5 bg-bunker-green rounded-full shadow-[0_0_4px_rgba(0,255,65,0.6)]" />
-          <span className="text-bunker-green/90">{onlineCount} online</span>
+          <span className="text-bunker-green/90">{signalsOnline} online</span>
           <span className="text-white/30">·</span>
           <span className="text-white/50">Live</span>
         </div>
@@ -321,20 +314,13 @@ export default function GlobalChat() {
         </div>
       </div>
 
-      {/* Advertisement — 250×300 (hidden on mobile so chat gets full space) */}
+      {/* Banner slot 250×300 (hidden on mobile so chat gets full space) */}
       <div
         className="hidden lg:flex glass-panel overflow-hidden flex-col w-full flex-shrink-0 rounded-xl p-3 sm:p-4"
         style={{ width: '100%', aspectRatio: '250 / 300', maxHeight: 'min(300px, 32vh)' }}
+        aria-hidden
       >
-        <div className="flex flex-col items-center justify-center flex-1 gap-1">
-          <span className="global-chat-label px-2 py-1 font-bold font-display uppercase bg-bunker-green/95 text-black rounded-md">
-            Advertisement
-          </span>
-          <span className="global-chat-body text-white/50 font-sans">250×300</span>
-        </div>
-        <div className="global-chat-label w-full text-center uppercase text-white/55 font-display py-2 border-t border-white/5">
-          ADS NOW
-        </div>
+        <div className="flex-1 min-h-0 rounded-lg border border-dashed border-white/10 bg-black/15" />
       </div>
     </aside>
   )

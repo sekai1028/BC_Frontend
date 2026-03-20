@@ -123,11 +123,13 @@ export default function Login() {
       >
         <div className="flex justify-center mb-6">
           <Link
-            to="/"
-            className="flex items-center justify-center rounded-xl overflow-hidden hover:opacity-90 transition-opacity"
-            title="Go to terminal"
+            to="/play"
+            className="flex items-center justify-center rounded-xl overflow-hidden p-1 -m-1 cursor-pointer hover:opacity-90 active:opacity-80 transition-opacity
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bunker-green/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
+            aria-label="Go to terminal chart"
+            title="Terminal / chart"
           >
-            <img src={aegisIcon} alt="Hold or Fold" className="h-12 w-auto max-w-[180px] sm:h-14 sm:max-w-[220px] object-contain" />
+            <img src={aegisIcon} alt="" className="h-12 w-auto max-w-[180px] sm:h-14 sm:max-w-[220px] object-contain pointer-events-none" />
           </Link>
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-bunker-green mb-1 tracking-tight">
