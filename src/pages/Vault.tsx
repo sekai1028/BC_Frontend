@@ -2,7 +2,7 @@
  * Enter the Vault — Legendary Syndicate Slayer
  * Requires: ≥1.0 SSC, 5,000 Gold wagered, Oracle Level 10; then deposit ≥1.0 SSC to authenticate.
  */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore, type User } from '../store/authStore'
 import {
@@ -11,15 +11,23 @@ import {
   VAULT_LEGEND_ORACLE_LEVEL,
 } from '../constants/vaultLegend'
 import { canOpenVaultProtocol, getSscWallet } from '../utils/vaultLegendEligibility'
+import { formatGoldWagerForUi, formatSscForUi } from '../utils/gameNumberFormat'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-function formatSsc(n: number) {
-  return n.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 6 })
-}
-
 export default function Vault() {
   const { user, token, setUser } = useAuthStore()
+
+  // Fresh wallet + wager totals from server (avoids stale auth vs. header Mercy Pot confusion)
+  useEffect(() => {
+    if (!token) return
+    fetch(`${API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.user) setUser(data.user)
+      })
+      .catch(() => {})
+  }, [token, setUser])
   const navigate = useNavigate()
   const [depositStr, setDepositStr] = useState('1.000')
   const [submitting, setSubmitting] = useState(false)
@@ -60,19 +68,25 @@ export default function Vault() {
           <h1 className="font-mono text-lg sm:text-xl font-bold uppercase tracking-wider text-[#a2f2ca] mb-2">
             Vault Access — Locked
           </h1>
-          <p className="text-white/70 text-sm font-mono mb-6">
+          <p className="text-white/70 text-sm font-mono mb-4">
             Complete all requirements to unlock the Vault Access Protocol. The &quot;Enter the Vault&quot; button pulses in the header when you are eligible.
           </p>
+          <div className="mb-6 rounded-lg border border-bunker-green/25 bg-black/30 px-4 py-3 text-xs sm:text-sm text-white/80 font-mono leading-relaxed">
+            <strong className="text-bunker-green">Note:</strong> The large green number in the header is the{' '}
+            <strong>Global Mercy Pot</strong> (shared by all players)—not your personal SSC. Your{' '}
+            <strong>personal SSC wallet</strong> is shown under <strong>Balance (Gold)</strong> as &quot;Your SSC · …&quot;. Vault checks{' '}
+            <strong>wagered</strong> Gold (lifetime), not your current Gold balance.
+          </div>
           <ul className="space-y-4 font-mono text-sm">
             <RequirementRow
               ok={checks.ssc}
               label="SSC balance"
-              detail={`≥ ${VAULT_LEGEND_MIN_SSC} SSC (you have ${formatSsc(sscBal)} SSC)`}
+              detail={`≥ ${VAULT_LEGEND_MIN_SSC.toFixed(1)} SSC (you have ${formatSscForUi(sscBal)} SSC)`}
             />
             <RequirementRow
               ok={checks.wager}
               label="Wager milestone"
-              detail={`≥ ${VAULT_LEGEND_WAGER_MILESTONE.toLocaleString()} Gold wagered (you: ${wager.toLocaleString()})`}
+              detail={`≥ ${VAULT_LEGEND_WAGER_MILESTONE.toLocaleString('en-US')} Gold wagered (you: ${formatGoldWagerForUi(wager)})`}
             />
             <RequirementRow
               ok={checks.oracle}
@@ -172,13 +186,13 @@ export default function Vault() {
                 value={depositStr}
                 onChange={(e) => setDepositStr(e.target.value)}
                 className="flex-1 min-w-0 bg-transparent px-3 py-3 font-mono text-white tabular-nums text-sm sm:text-base focus:outline-none focus:ring-0"
-                placeholder={String(VAULT_LEGEND_MIN_SSC)}
+                placeholder={VAULT_LEGEND_MIN_SSC.toFixed(3)}
                 autoComplete="off"
                 aria-label="Deposit SSC amount"
               />
             </div>
             <p className="mt-2 text-[10px] sm:text-xs text-white/45 font-mono">
-              Minimum {VAULT_LEGEND_MIN_SSC} SSC. Debited from your wallet on authenticate.
+              Minimum {VAULT_LEGEND_MIN_SSC.toFixed(1)} SSC. Debited from your wallet on authenticate.
             </p>
           </div>
 
@@ -186,7 +200,7 @@ export default function Vault() {
             <div className="vault-balance-box rounded-md border border-[#5ecf8a]/45 bg-black/35 px-4 py-3">
               <div className="font-mono text-[10px] uppercase tracking-widest text-white/50 mb-1">Personal balance</div>
               <div className="font-mono text-xl sm:text-2xl font-bold text-[#a2f2ca] tabular-nums">
-                {formatSsc(sscBal)} <span className="text-sm font-normal text-white/60 lowercase">ssc</span>
+                {formatSscForUi(sscBal)} <span className="text-sm font-normal text-white/60 lowercase">ssc</span>
               </div>
             </div>
           </div>
@@ -228,7 +242,7 @@ function RequirementRow({ ok, label, detail }: { ok: boolean; label: string; det
 
 function CredentialVerifiedScreen({ user, depositSsc }: { user: User; depositSsc: number }) {
   const rankPadded = String(user.rank ?? 0).padStart(4, '0')
-  const dep = formatSsc(depositSsc)
+  const dep = formatSscForUi(depositSsc)
   return (
     <div className="min-h-screen min-h-[100dvh] w-full overflow-y-auto overflow-x-hidden scrollbar-hide px-3 py-6 sm:p-8">
       <div className="mx-auto max-w-5xl vault-credential-frame rounded-2xl p-6 sm:p-10">

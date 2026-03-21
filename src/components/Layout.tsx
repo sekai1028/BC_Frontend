@@ -176,7 +176,7 @@ export default function Layout({ children }: LayoutProps) {
     location.pathname === '/register' ||
     location.pathname === '/verify-email' ||
     location.pathname === '/manifesto' ||
-    location.pathname === '/admin' ||
+    location.pathname.startsWith('/admin') ||
     (location.pathname === '/' && !token)
 
   /** On all screen sizes: show only header + page (no sidebar, no chat) for about/support (legacy /legal redirects) */

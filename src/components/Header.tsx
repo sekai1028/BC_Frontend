@@ -3,12 +3,13 @@ import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { useGameStore } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
-import { vaultHeaderActive } from '../utils/vaultLegendEligibility'
+import { getSscWallet, vaultHeaderActive } from '../utils/vaultLegendEligibility'
 import aegisIcon from '../public/asset/aegis.png'
 import goldIcon from '../public/asset/gold.svg'
 import rankIcon from '../public/asset/Rank.svg'
 import dollarIcon from '../public/asset/$.png'
 import enterVaultIcon from '../public/asset/enter_the_vault.svg'
+import { formatMercyPotForHeader, formatSscForUi } from '../utils/gameNumberFormat'
 
 const DROPDOWN_GAP = 6
 /** Desktop / wide header menu width */
@@ -161,10 +162,10 @@ export default function Header() {
     return () => clearTimeout(t)
   }, [mercyPot, mercyPotUpdatedAt])
 
-  const formatMercyPot = (amount: number) => {
-    const n = Math.max(0, amount)
-    return n.toFixed(MERCY_POT_DECIMAL_PLACES)
-  }
+  const formatMercyPot = (amount: number) =>
+    formatMercyPotForHeader(amount, MERCY_POT_DECIMAL_PLACES)
+
+  const personalSscFormatted = user ? formatSscForUi(getSscWallet(user)) : null
 
   const signalsCopy = (n: number) =>
     `${n} ${n === 1 ? 'Signal' : 'Signals'} = ${n}x Global Points`
@@ -272,7 +273,7 @@ export default function Header() {
                 className="w-full min-w-0 font-display text-[6px] uppercase tracking-wider sm:text-[7px]"
                 style={{ color: isRedLine ? '#cc4444' : 'rgba(255,255,200,0.9)' }}
               >
-                Balance
+                Balance (Gold)
               </div>
               <div
                 className={`max-w-full truncate px-0.5 text-center font-mono text-[10px] font-bold tabular-nums sm:text-[11px] ${isRedLine ? 'red-line-target' : ''}`}
@@ -281,6 +282,14 @@ export default function Header() {
               >
                 {formatGold(gold)}
               </div>
+              {user && personalSscFormatted != null && (
+                <div
+                  className="max-w-full truncate px-0.5 text-center font-mono text-[7px] sm:text-[8px] font-semibold tabular-nums text-[#21AD55] leading-tight"
+                  title={`Your personal SSC wallet: ${personalSscFormatted}`}
+                >
+                  Your SSC · {personalSscFormatted}
+                </div>
+              )}
             </div>
             <div
               className={`glass-card relative flex min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center sm:px-2 sm:py-1.5 ${mercyIntensityClass}`}
@@ -297,9 +306,15 @@ export default function Header() {
                 <img src={dollarIcon} alt="" className="h-6 w-6 object-contain sm:h-7 sm:w-7" />
               </div>
               <div className="w-full min-w-0 px-0.5 font-mono text-[6px] font-medium uppercase leading-tight tracking-wider text-[#2DE85C] sm:text-[7px]">
-                SSC · GLOBAL MERCY POT
+                GLOBAL MERCY POT
               </div>
-              <div className="max-w-full overflow-x-auto whitespace-nowrap text-center font-mono text-[9px] font-bold tabular-nums text-[#21AD55] sm:text-[10px]" title={formatMercyPot(mercyDisplay)}>
+              <div className="w-full min-w-0 px-0.5 font-mono text-[5px] sm:text-[6px] leading-tight text-white/45 normal-case tracking-normal">
+                Shared pool · not your wallet
+              </div>
+              <div
+                className="max-w-full overflow-x-auto whitespace-nowrap text-center font-mono text-[9px] font-bold tabular-nums text-[#21AD55] sm:text-[10px]"
+                title={`Global Mercy Pot (all players): ${formatMercyPot(mercyDisplay)}`}
+              >
                 {formatMercyPot(mercyDisplay)}
               </div>
               <div className="line-clamp-2 w-full px-0.5 text-center font-mono text-[6px] leading-tight text-white/60 tabular-nums sm:text-[7px]">
@@ -353,11 +368,19 @@ export default function Header() {
             >
               <img src={goldIcon} alt="Gold" className="w-full h-full object-contain" />
             </div>
-            <div className={`leading-tight min-w-0 ${isRedLine ? 'red-line-target' : ''}`} style={{ marginLeft: 2 }}>
-              <div className="font-mono uppercase tracking-wider truncate text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] xl:text-xs 2xl:text-xs" style={{ fontWeight: 500, letterSpacing: '0.06em', color: isRedLine ? '#cc4444' : 'rgba(255,255,200,0.9)', lineHeight: 1.2 }}>Balance</div>
+            <div className={`leading-tight min-w-0 flex-1 ${isRedLine ? 'red-line-target' : ''}`} style={{ marginLeft: 2 }}>
+              <div className="font-mono uppercase tracking-wider truncate text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] xl:text-xs 2xl:text-xs" style={{ fontWeight: 500, letterSpacing: '0.06em', color: isRedLine ? '#cc4444' : 'rgba(255,255,200,0.9)', lineHeight: 1.2 }}>Balance (Gold)</div>
               <div className={`font-extrabold font-mono truncate text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl ${isRedLine ? '' : ''}`} style={{ lineHeight: 1.2, textShadow: isRedLine ? '0 0 6px rgba(204,68,68,0.7)' : '0 0 6px rgba(198,255,116,0.6)', color: isRedLine ? '#cc4444' : '#FFFF00' }}>
                 {formatGold(gold)}
               </div>
+              {user && personalSscFormatted != null && (
+                <div
+                  className="font-mono truncate text-[8px] sm:text-[9px] lg:text-[10px] text-[#21AD55] tabular-nums mt-0.5"
+                  title={`Your personal SSC wallet (Vault & ads): ${personalSscFormatted}`}
+                >
+                  Your SSC · {personalSscFormatted}
+                </div>
+              )}
             </div>
           </div>
 
@@ -400,8 +423,13 @@ export default function Header() {
                   <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-6 sm:w-7 sm:h-7 md:w-7 md:h-7 lg:w-8 lg:h-8 xl:w-10 xl:h-10 2xl:w-11 2xl:h-[42px] object-contain" />
                 </div>
                 <div className="leading-tight min-w-0 flex-1 overflow-hidden text-center">
-                  <div className="font-mono uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-xs leading-tight" style={{ color: '#2DE85C', fontWeight: 500, letterSpacing: '0.06em', lineHeight: 1.2 }}>SSC · GLOBAL MERCY POT</div>
-                  <div className="font-extrabold font-mono tabular-nums mercy-value text-[10px] sm:text-xs md:text-xs lg:text-sm xl:text-lg 2xl:text-2xl" style={{ color: '#21AD55', textShadow: '0 0 6px rgba(0,255,0,0.5)', lineHeight: 1.2 }}>
+                  <div className="font-mono uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-xs leading-tight" style={{ color: '#2DE85C', fontWeight: 500, letterSpacing: '0.06em', lineHeight: 1.2 }}>GLOBAL MERCY POT</div>
+                  <div className="font-mono text-[6px] sm:text-[7px] text-white/45 leading-tight normal-case tracking-normal mb-0.5">Shared by all players</div>
+                  <div
+                    className="font-extrabold font-mono tabular-nums mercy-value text-[10px] sm:text-xs md:text-xs lg:text-sm xl:text-lg 2xl:text-2xl"
+                    style={{ color: '#21AD55', textShadow: '0 0 6px rgba(0,255,0,0.5)', lineHeight: 1.2 }}
+                    title={`Global Mercy Pot total (not your balance): ${formatMercyPot(mercyDisplay)}`}
+                  >
                     {formatMercyPot(mercyDisplay)}
                   </div>
                 </div>
