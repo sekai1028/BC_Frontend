@@ -74,6 +74,12 @@ interface GameState {
   recentAchievementUnlocks: string[]
   /** GDD 20: Admin event (golden-rain / great-blackout) for global banner */
   adminEvent: { type: string } | null
+  /** SSC from last chart fold (success banner) */
+  foldSscEarned: number | null
+  /** Brief toast near Mercy Pot after rewarded ad (+SSC) */
+  sscAdToast: number | null
+  /** Bumps when a new float animation should play */
+  sscFloatKey: number
 
   startRound: (wager: number) => void
   foldRound: () => void
@@ -123,6 +129,8 @@ interface GameState {
   setCrashShakeActive: (active: boolean) => void
   setRecentAchievementUnlocks: (ids: string[]) => void
   setAdminEvent: (ev: { type: string } | null) => void
+  setFoldSscEarned: (n: number | null) => void
+  setSscAdToast: (n: number | null) => void
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -170,6 +178,9 @@ export const useGameStore = create<GameState>((set) => ({
   foldMercyContribution: 0,
   recentAchievementUnlocks: [],
   adminEvent: null,
+  foldSscEarned: null,
+  sscAdToast: null,
+  sscFloatKey: 0,
 
   // Actions
   startRound: (wager) => set({ 
@@ -257,7 +268,8 @@ export const useGameStore = create<GameState>((set) => ({
     ghostCrashed: false,
     ghostCrashedAt: null,
     ghostSkippedByUser: false,
-    currentMultiplier: 1.0
+    currentMultiplier: 1.0,
+    foldSscEarned: null,
   }),
   setFoldMercyContribution: (amount) => set({ foldMercyContribution: amount }),
   crashRound: () => set({
@@ -343,4 +355,10 @@ export const useGameStore = create<GameState>((set) => ({
   setCrashShakeActive: (active) => set({ crashShakeActive: active }),
   setRecentAchievementUnlocks: (ids) => set({ recentAchievementUnlocks: ids || [] }),
   setAdminEvent: (ev) => set({ adminEvent: ev ?? null }),
+  setFoldSscEarned: (n) => set({ foldSscEarned: n }),
+  setSscAdToast: (n) =>
+    set((s) => ({
+      sscAdToast: n,
+      sscFloatKey: n != null ? s.sscFloatKey + 1 : s.sscFloatKey,
+    })),
 }))

@@ -548,4 +548,50 @@
     72% { transform: translate3d(1px, 0, 0) rotate(0.25deg); }
     84% { transform: translate3d(0, 0, 0) rotate(0deg); }
   }
+
+  /* Video ad SSC reward — floats up from Mercy Pot */
+  .ssc-mercy-float {
+    animation: ssc-mercy-float 1.85s ease-out forwards;
+  }
+  @keyframes ssc-mercy-float {
+    0% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(6px, -40px, 0) scale(1.15);
+    }
+  }
+
+  /* Enter the Vault — Access Protocol */
+  .vault-frame {
+    border: 1px solid rgba(94, 207, 138, 0.35);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.45),
+      inset 0 0 80px rgba(94, 207, 138, 0.05);
+    background: rgba(6, 12, 9, 0.78);
+  }
+  .vault-credential-frame {
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.35);
+    background: rgba(8, 10, 8, 0.85);
+  }
+  .vault-input-frame {
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.35);
+  }
+  .vault-balance-box {
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.25);
+  }
+  .vault-authenticate-btn {
+    background: linear-gradient(180deg, #8fd9a8 0%, #3d8f5a 100%);
+    color: #0a1a12;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+    box-shadow: 0 0 20px rgba(94, 207, 138, 0.25);
+  }
+  .vault-btn-secondary {
+    border: 1px solid rgba(94, 207, 138, 0.4);
+    color: #a2f2ca;
+    background: rgba(0, 0, 0, 0.25);
+  }
 }

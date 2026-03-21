@@ -25,6 +25,9 @@ export default function Admin() {
   const [userSearchInput, setUserSearchInput] = useState('')
   const [debouncedUserSearch, setDebouncedUserSearch] = useState('')
   const [giveGoldAmount, setGiveGoldAmount] = useState<Record<string, string>>({})
+  const [usernameDraft, setUsernameDraft] = useState<Record<string, string>>({})
+  const [goldAdjustDelta, setGoldAdjustDelta] = useState<Record<string, string>>({})
+  const [mercyPotInput, setMercyPotInput] = useState('')
   const [chatMessages, setChatMessages] = useState<
     { id?: string; username: string; text: string; time?: string; rank?: number; isSystem?: boolean; userId?: string | null }[]
   >([])
@@ -117,6 +120,79 @@ export default function Admin() {
         if (path === 'reset-gold' || path === 'ban-chat') refetchUsers()
       })
       .catch((e) => setError(e?.message || 'Request failed'))
+      .finally(() => setLoading(false))
+  }
+
+  const patchUsername = (userId: string) => {
+    const raw = (usernameDraft[userId] ?? '').trim()
+    if (!raw || raw.length < 2) {
+      setError('Username must be at least 2 characters.')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
+    setLoading(true)
+    setError('')
+    fetch(`${API_URL}/api/admin/users/${userId}/username`, {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify({ username: raw }),
+    })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(data.message || 'Username update failed')
+        refetchUsers()
+      })
+      .catch((e) => setError(e?.message || 'Username update failed'))
+      .finally(() => setLoading(false))
+  }
+
+  const adjustGoldDeltaForUser = (userId: string) => {
+    const raw = goldAdjustDelta[userId]?.trim()
+    const delta = Number(raw)
+    if (!userId || !Number.isFinite(delta) || delta === 0) {
+      setError('Enter a non-zero gold delta (negative to remove).')
+      setTimeout(() => setError(''), 5000)
+      return
+    }
+    setLoading(true)
+    setError('')
+    fetch(`${API_URL}/api/admin/adjust-gold`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ userId, delta }),
+    })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(data.message || 'Adjust gold failed')
+        setGoldAdjustDelta((m) => ({ ...m, [userId]: '' }))
+        refetchUsers()
+      })
+      .catch((e) => setError(e?.message || 'Adjust gold failed'))
+      .finally(() => setLoading(false))
+  }
+
+  const applyMercyPot = (reset?: boolean) => {
+    if (!reset) {
+      const t = Number(mercyPotInput)
+      if (!Number.isFinite(t) || mercyPotInput.trim() === '') {
+        setError('Enter a valid Mercy Pot total.')
+        setTimeout(() => setError(''), 4000)
+        return
+      }
+    }
+    setLoading(true)
+    setError('')
+    fetch(`${API_URL}/api/admin/mercy-pot`, {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify(reset ? { reset: true } : { total: Number(mercyPotInput) }),
+    })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(data.message || 'Mercy pot update failed')
+        if (!reset) setMercyPotInput(String(data.total ?? ''))
+      })
+      .catch((e) => setError(e?.message || 'Mercy pot update failed'))
       .finally(() => setLoading(false))
   }
 
@@ -316,6 +392,45 @@ export default function Admin() {
           </div>
         </section>
 
+        {/* Mercy Pot (admin) */}
+        <section className="glass-green rounded-2xl p-6">
+          <h2 className="text-bunker-green font-bold text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
+            <span className="w-1 h-4 bg-bunker-green rounded" />
+            Global Mercy Pot (SSC)
+          </h2>
+          <p className="text-white/50 text-xs mb-3">Set total or reset to 0. All connected clients receive the update.</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="text-white/50 text-xs block mb-1">New total</label>
+              <input
+                type="number"
+                step="any"
+                min={0}
+                value={mercyPotInput}
+                onChange={(e) => setMercyPotInput(e.target.value)}
+                className="glass-inset w-40 px-3 py-2 rounded-xl border border-white/15 text-white font-mono text-sm"
+                placeholder="0.0"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => applyMercyPot(false)}
+              disabled={loading}
+              className="px-4 py-2 rounded-xl bg-bunker-green text-black font-bold text-sm hover:bg-bunker-green/90 disabled:opacity-50"
+            >
+              Set total
+            </button>
+            <button
+              type="button"
+              onClick={() => applyMercyPot(true)}
+              disabled={loading}
+              className="px-4 py-2 rounded-xl border border-red-500/50 text-red-400 hover:bg-red-500/15 text-sm disabled:opacity-50"
+            >
+              Reset to 0
+            </button>
+          </div>
+        </section>
+
         {/* Live Ops */}
         <section className="glass-green rounded-2xl p-6">
           <h2 className="text-bunker-green font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -400,7 +515,7 @@ export default function Admin() {
         <section className="glass-green rounded-2xl p-6">
           <h2 className="text-bunker-green font-bold text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
             <span className="w-1 h-4 bg-bunker-green rounded" />
-            Users — search, give gold, reset, ban chat
+            Users — search, username, gold ±, give gold, reset, ban chat
           </h2>
           <p className="text-white/50 text-xs mb-3">
             Search by username, email, or paste a 24-character user id. Results update as you type (short delay).
@@ -423,7 +538,7 @@ export default function Admin() {
             </button>
           </div>
           <div className="glass-inset overflow-x-auto rounded-xl border border-white/10">
-            <table className="w-full text-left text-sm min-w-[640px]">
+            <table className="w-full text-left text-sm min-w-[720px]">
               <thead>
                 <tr className="border-b border-bunker-green/30 bg-bunker-green/5">
                   <th className="py-3 px-3 font-semibold text-bunker-green">Username</th>
@@ -431,7 +546,7 @@ export default function Admin() {
                   <th className="py-3 px-3 font-semibold text-bunker-green">User id</th>
                   <th className="py-3 px-3 font-semibold text-bunker-green">Gold</th>
                   <th className="py-3 px-3 font-semibold text-bunker-green">Status</th>
-                  <th className="py-3 px-3 font-semibold text-bunker-green">Actions</th>
+                  <th className="py-3 px-3 font-semibold text-bunker-green min-w-[280px]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -447,9 +562,30 @@ export default function Admin() {
                       key={u.id}
                       className={`border-b border-white/5 hover:bg-white/[0.04] transition ${i % 2 === 0 ? 'bg-white/[0.02]' : ''}`}
                     >
-                      <td className="py-2.5 px-3 text-white font-medium whitespace-nowrap" title={u.id}>
-                        {u.rank != null ? <span className="text-white/50 text-xs">({u.rank}) </span> : null}
-                        {u.username}
+                      <td className="py-2.5 px-3 text-white font-medium whitespace-nowrap align-top" title={u.id}>
+                        <div className="flex flex-col gap-1 min-w-[140px]">
+                          <span>
+                            {u.rank != null ? <span className="text-white/50 text-xs">({u.rank}) </span> : null}
+                            {u.username}
+                          </span>
+                          <div className="flex flex-wrap gap-1 items-center">
+                            <input
+                              type="text"
+                              value={usernameDraft[u.id] ?? u.username}
+                              onChange={(e) => setUsernameDraft((m) => ({ ...m, [u.id]: e.target.value }))}
+                              className="flex-1 min-w-0 px-2 py-1 rounded-lg border border-white/20 bg-black/40 text-white text-xs font-mono"
+                              placeholder="New username"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => patchUsername(u.id)}
+                              disabled={loading}
+                              className="px-2 py-1 rounded border border-bunker-green/60 text-bunker-green text-xs hover:bg-bunker-green/15 disabled:opacity-50"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-2.5 px-3 text-white/70 text-xs max-w-[140px] truncate" title={u.email || ''}>
                         {u.email || '—'}
@@ -468,7 +604,26 @@ export default function Admin() {
                         )}
                       </td>
                       <td className="py-2.5 px-3">
-                        <div className="flex flex-col gap-2 min-w-[200px]">
+                        <div className="flex flex-col gap-2 min-w-[220px]">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <input
+                              type="number"
+                              step="any"
+                              placeholder="Gold Δ"
+                              value={goldAdjustDelta[u.id] ?? ''}
+                              onChange={(e) => setGoldAdjustDelta((m) => ({ ...m, [u.id]: e.target.value }))}
+                              className="w-24 px-2 py-1 rounded-lg border border-amber-500/30 bg-black/30 text-white text-xs font-mono focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                              title="Add or remove gold (negative allowed)"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => adjustGoldDeltaForUser(u.id)}
+                              disabled={loading}
+                              className="px-2.5 py-1 rounded border border-amber-500/60 text-amber-300 hover:bg-amber-500/15 text-xs transition disabled:opacity-50"
+                            >
+                              Apply Δ
+                            </button>
+                          </div>
                           <div className="flex flex-wrap items-center gap-1.5">
                             <input
                               type="number"

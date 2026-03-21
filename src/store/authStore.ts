@@ -11,6 +11,14 @@ export interface User {
   verified: boolean
   gold?: number
   metal?: number
+  /** Lifetime SSC credited (fold + idle + ads) */
+  sscEarned?: number
+  /** Single SSC wallet (integration name) */
+  user_ssc_balance?: number
+  sscBalance?: number
+  propagandaFilter?: boolean
+  leaderboardBunkerTag?: boolean
+  leaderboardGlowColor?: string
   twoFactorEnabled?: boolean
   totalSiphoned?: number
   biggestExtract?: number
@@ -23,6 +31,8 @@ export interface User {
   oracleMod?: number
   /** GDD 20: Admin — banned from Global Chat */
   bannedFromChat?: boolean
+  /** Enter the Vault — Legendary Syndicate Slayer credential verified */
+  vaultLegendUnlocked?: boolean
 }
 
 interface AuthState {

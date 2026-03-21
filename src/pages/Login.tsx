@@ -43,7 +43,8 @@ export default function Login() {
       .then((data) => {
         if (data.token) setToken(data.token)
         if (data.user) setUser(data.user)
-        navigate('/', { replace: true })
+        const from = (location.state as { from?: string })?.from
+        navigate(from && typeof from === 'string' && from.startsWith('/') ? from : '/', { replace: true })
       })
       .catch(() => setError('Login link failed. Request a new code.'))
       .finally(() => setLoading(false))
@@ -108,7 +109,8 @@ export default function Login() {
       }
       if (data.token) setToken(data.token)
       if (data.user) setUser(data.user)
-      navigate('/', { replace: true })
+      const from = (location.state as { from?: string })?.from
+      navigate(from && typeof from === 'string' && from.startsWith('/') ? from : '/', { replace: true })
     } catch {
       setError('Network error.')
     } finally {

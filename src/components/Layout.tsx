@@ -112,11 +112,26 @@ export default function Layout({ children }: LayoutProps) {
   // GDD 8.1: Oracle passive gold — server sends updated gold every 10s when tab focused
   useEffect(() => {
     if (!socket) return
-    const onIdleGold = (data: { gold?: number }) => {
+    const onIdleGold = (data: {
+      gold?: number
+      metal?: number
+      sscEarned?: number
+      sscBalance?: number
+      user_ssc_balance?: number
+    }) => {
       if (typeof data?.gold !== 'number') return
       setGold(data.gold)
       const u = useAuthStore.getState().user
-      if (u) useAuthStore.getState().setUser({ ...u, gold: data.gold })
+      const bal = data.user_ssc_balance ?? data.sscBalance ?? data.metal ?? data.sscEarned
+      if (u) {
+        useAuthStore.getState().setUser({
+          ...u,
+          gold: data.gold,
+          ...(typeof bal === 'number'
+            ? { metal: bal, sscEarned: bal, user_ssc_balance: bal, sscBalance: bal }
+            : {}),
+        })
+      }
     }
     socket.on('oracle-idle-gold', onIdleGold)
     return () => { socket.off('oracle-idle-gold', onIdleGold) }

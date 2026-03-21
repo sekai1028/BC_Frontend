@@ -380,6 +380,11 @@ export default function Terminal() {
       profit: number
       wager: number
       gold?: number
+      metal?: number
+      sscEarnedThisRound?: number
+      sscEarnedTotal?: number
+      user_ssc_balance?: number
+      sscBalance?: number
       stats?: { totalRounds: number; bestStreak: number; winRate: number; avgMultiplier: number }
       leaderboardRank?: number
       leaderboardTotalPlayers?: number
@@ -391,6 +396,20 @@ export default function Terminal() {
       const mult = data.multiplier ?? useGameStore.getState().currentMultiplier
       useGameStore.getState().setFoldMultiplier(mult)
       useGameStore.getState().setFoldMercyContribution(data.wager * 0.05)
+      useGameStore.getState().setFoldSscEarned(
+        typeof data.sscEarnedThisRound === 'number' ? data.sscEarnedThisRound : null
+      )
+      const u0 = useAuthStore.getState().user
+      const bal = data.user_ssc_balance ?? data.sscBalance ?? data.sscEarnedTotal ?? data.metal
+      if (u0 && bal != null && typeof bal === 'number') {
+        setUser({
+          ...u0,
+          metal: bal,
+          sscEarned: bal,
+          user_ssc_balance: bal,
+          sscBalance: bal,
+        })
+      }
       if (!alreadyAppliedGold) {
         if (data.gold != null) {
           setGold(data.gold)
@@ -808,7 +827,7 @@ export default function Terminal() {
                       }),
                     }}
                   >
-                    {displayMultiplier.toFixed(4).replace('.', ',')}x
+                    {displayMultiplier.toFixed(4)}x
                   </div>
                   {isRunning && (
                     <div

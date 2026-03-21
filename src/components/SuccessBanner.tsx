@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti'
 import { GUILT_TRIP_HOOK, getRandomGuiltTrip } from '../data/guiltTripPool'
 import { getRandomExtractionHeadline, getRandomRetreatHeadline } from '../data/crashBannerPools'
 import { stopBgm, startAppBgm, playSuccessBannerSound, ASSET } from '../utils/audio'
+import { SSC_PER_10S_SITE_IDLE, SSC_PER_SECOND_ROUND } from '../constants/ssc'
 
 const MIN_RESULTS_DISPLAY_MS = 7000 // Results screen must stay open at least 7s before Skip/Continue (even if skip pressed)
 /** Same constant rate as Terminal multiplier display (multiplier units per second) */
@@ -27,6 +28,7 @@ export default function SuccessBanner() {
     ghostCrashed,
     ghostCrashedAt,
     foldMercyContribution,
+    foldSscEarned,
     leaderboardRank,
     leaderboardTotalPlayers,
     gameState,
@@ -144,6 +146,7 @@ export default function SuccessBanner() {
     g.setLeaderboardRank(null, null)
     g.setGlobalRoundActive(false)
     g.setServerIdleActive(false)
+    g.setFoldSscEarned(null)
     setDismissed(true)
     startAppBgm()
   }
@@ -214,6 +217,19 @@ export default function SuccessBanner() {
               }}
             >
               MERCY POT CONTRIBUTION: +${foldMercyContribution.toFixed(2)}
+            </div>
+          )}
+
+          {foldSscEarned != null && foldSscEarned > 0 && (
+            <div
+              className="text-[11px] sm:text-xs mb-1 font-mono leading-snug"
+              style={{
+                color: '#5CFFB8',
+                textShadow: '0 1px 3px #000',
+              }}
+            >
+              [{isVictory ? 'SUCCESS' : 'DEFEAT'}] Round SSC (reported): +{foldSscEarned.toFixed(6)} = time ×{' '}
+              {SSC_PER_SECOND_ROUND}/s — not added again; site idle +{SSC_PER_10S_SITE_IDLE}/10s is the master clock.
             </div>
           )}
 

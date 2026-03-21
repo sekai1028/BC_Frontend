@@ -10,7 +10,7 @@ interface LeftSidebarProps {
 
 export default function LeftSidebar({ mobile }: LeftSidebarProps) {
   const navigate = useNavigate()
-  const { gameState, crashOverlayPhase, addGold, setGold } = useGameStore()
+  const { gameState, crashOverlayPhase, addGold, setGold, setSscAdToast } = useGameStore()
   const { user, token, setUser } = useAuthStore()
 
   // GDD 2.7.3: Ad option permanently in Holophone after crash screen disappears (minimal or after HOLD)
@@ -31,7 +31,15 @@ export default function LeftSidebar({ mobile }: LeftSidebarProps) {
         if (!res.ok) throw new Error('Siphon failed')
         const data = await res.json()
         setGold(data.gold)
-        setUser({ ...user, gold: data.gold })
+        setUser({
+          ...user,
+          gold: data.gold,
+          ...(typeof data.metal === 'number' ? { metal: data.metal } : {}),
+          ...(typeof data.sscEarned === 'number' ? { sscEarned: data.sscEarned } : {}),
+        })
+        const adSsc = typeof data.sscFromAd === 'number' ? data.sscFromAd : 0.002
+        setSscAdToast(adSsc)
+        window.setTimeout(() => useGameStore.getState().setSscAdToast(null), 6500)
       } catch {
         addGold(1)
       }

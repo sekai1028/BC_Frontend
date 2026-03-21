@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { getGuestId } from '../utils/guestIdentity'
@@ -12,6 +12,11 @@ interface LeaderboardEntry {
   biggestExtract: number
   biggestLoss: number
   source: 'user' | 'guest'
+  /** Exile class rank (logged-in users only) */
+  exileRank?: number | null
+  /** Black Market: Leaderboard Bunker Tags — glow on name */
+  leaderboardBunkerTag?: boolean
+  leaderboardGlowColor?: string | null
 }
 
 interface MyRank {
@@ -21,12 +26,23 @@ interface MyRank {
   biggestLoss: number
   totalPlayers: number
   displayName: string | null
+  leaderboardBunkerTag?: boolean
+  leaderboardGlowColor?: string | null
+}
+
+/** Outline-style glow on username (Bunker Tags purchase) */
+function bunkerTagNameStyle(tag?: boolean, color?: string | null): CSSProperties | undefined {
+  if (!tag) return undefined
+  const c = color || '#00FF41'
+  return {
+    textShadow: `0 0 4px ${c}, 0 0 10px ${c}99, 0 0 18px ${c}44`,
+  }
 }
 
 export type LeaderboardSort = 'totalSiphoned' | 'biggestExtract' | 'biggestLoss'
 
 export default function Leaderboard() {
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
   const [myRank, setMyRank] = useState<MyRank | null>(null)
   const [totalPlayers, setTotalPlayers] = useState<number>(0)
@@ -257,7 +273,8 @@ export default function Leaderboard() {
                   <table className="w-full text-left text-sm sm:text-base table-fixed">
                     <colgroup>
                       <col className="w-12 sm:w-14" />
-                      <col className="min-w-[120px]" />
+                      <col className="min-w-[100px]" />
+                      <col className="w-16 sm:w-20" />
                       <col className="w-28 sm:w-32" />
                       <col className="w-28 sm:w-32" />
                     </colgroup>
@@ -265,6 +282,7 @@ export default function Leaderboard() {
                       <tr className={`border-b ${sort === 'biggestLoss' ? 'border-amber-400/25' : 'border-bunker-green/30'}`}>
                         <th className={`py-2 pl-2 sm:pl-3 pr-2 font-semibold tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>#</th>
                         <th className="py-2 pr-2 text-white/95 font-semibold">Name</th>
+                        <th className="py-2 pr-2 text-white/95 font-semibold tabular-nums">Class</th>
                         <th className="py-2 pr-2 text-white/95 font-semibold tabular-nums">Total siphoned</th>
                         <th className="py-2 pr-2 text-white/95 font-semibold tabular-nums">{sort === 'biggestExtract' ? 'Best run' : sort === 'biggestLoss' ? 'Most lost' : 'Biggest extract'}</th>
                       </tr>
@@ -275,9 +293,16 @@ export default function Leaderboard() {
                         return (
                           <tr key={`${e.source}-${e.rank}-${e.displayName}-${e.totalSiphoned}`} className="border-b border-white/10">
                             <td className={`py-3 pl-2 sm:pl-3 pr-2 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>{e.rank}</td>
-                            <td className="py-3 pr-2 text-white/95 truncate" title={e.displayName}>
+                            <td
+                              className="py-3 pr-2 text-white/95 truncate"
+                              title={e.displayName}
+                              style={bunkerTagNameStyle(e.leaderboardBunkerTag, e.leaderboardGlowColor)}
+                            >
                               {e.displayName}
                               <span className="text-white/40 text-xs ml-1 font-mono">({e.source})</span>
+                            </td>
+                            <td className="py-3 pr-2 text-[#B39CFF] font-mono tabular-nums text-xs">
+                              {e.source === 'user' && e.exileRank != null ? `C${e.exileRank}` : '—'}
                             </td>
                             <td className="py-3 pr-2 text-white/95 font-mono tabular-nums">{e.totalSiphoned.toFixed(2)}</td>
                             <td className={`py-3 pr-2 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-white/95'}`}>
@@ -300,6 +325,7 @@ export default function Leaderboard() {
               <colgroup>
                 <col className="w-12 sm:w-14" />
                 <col className="min-w-[120px]" />
+                <col className="w-16 sm:w-24" />
                 <col className="w-28 sm:w-32" />
                 <col className="w-28 sm:w-32" />
               </colgroup>
@@ -307,6 +333,7 @@ export default function Leaderboard() {
                 <tr className={`border-b ${sort === 'biggestLoss' ? 'border-amber-400/25' : 'border-bunker-green/30'}`}>
                   <th className={`py-4 pl-3 sm:pl-4 pr-4 font-semibold tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>#</th>
                   <th className="py-4 pr-4 text-white/95 font-semibold">Name</th>
+                  <th className="py-4 pr-4 text-white/95 font-semibold tabular-nums">Class</th>
                   <th className="py-4 pr-4 text-white/95 font-semibold tabular-nums">Total siphoned</th>
                   <th className="py-4 pr-4 text-white/95 font-semibold tabular-nums">{sort === 'biggestExtract' ? 'Best run' : sort === 'biggestLoss' ? 'Most lost' : 'Biggest extract'}</th>
                 </tr>
@@ -317,6 +344,7 @@ export default function Leaderboard() {
                     <tr key={`skeleton-${i}`} className="border-b border-white/10">
                       <td className="py-4 pl-3 sm:pl-4 pr-4"><span className="inline-block h-5 w-6 bg-white/10 rounded animate-pulse" /></td>
                       <td className="py-4 pr-4"><span className="inline-block h-5 w-24 bg-white/10 rounded animate-pulse" /></td>
+                      <td className="py-4 pr-4"><span className="inline-block h-5 w-10 bg-white/10 rounded animate-pulse" /></td>
                       <td className="py-4 pr-4"><span className="inline-block h-5 w-16 bg-white/10 rounded animate-pulse" /></td>
                       <td className="py-4 pr-4"><span className="inline-block h-5 w-16 bg-white/10 rounded animate-pulse" /></td>
                     </tr>
@@ -331,7 +359,16 @@ export default function Leaderboard() {
                       className={`border-b border-white/15 hover:bg-white/8 ${isYou ? (sort === 'biggestLoss' ? 'bg-amber-950/15' : 'bg-bunker-green/15') : ''}`}
                     >
                       <td className={`py-4 pl-3 sm:pl-4 pr-4 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300' : 'text-bunker-green'}`}>{e.rank}</td>
-                      <td className="py-4 pr-4 text-white/95 truncate" title={e.displayName}>{isYou ? `${e.displayName} (You)` : e.displayName}</td>
+                      <td
+                        className="py-4 pr-4 text-white/95 truncate"
+                        title={e.displayName}
+                        style={bunkerTagNameStyle(e.leaderboardBunkerTag, e.leaderboardGlowColor)}
+                      >
+                        {isYou ? `${e.displayName} (You)` : e.displayName}
+                      </td>
+                      <td className="py-4 pr-4 text-[#B39CFF] font-mono tabular-nums text-sm">
+                        {e.source === 'user' && e.exileRank != null ? `CLASS ${e.exileRank}` : '—'}
+                      </td>
                       <td className="py-4 pr-4 text-white/95 font-mono tabular-nums">{e.totalSiphoned.toFixed(2)}</td>
                       <td className={`py-4 pr-4 font-mono tabular-nums ${sort === 'biggestLoss' ? 'text-amber-300 font-medium' : 'text-white/95'}`}>
                         {sort === 'biggestLoss' ? lossVal.toFixed(2) : e.biggestExtract.toFixed(2)}
@@ -348,7 +385,17 @@ export default function Leaderboard() {
                     return (
                       <tr key="you-row" className="border-b border-bunker-green/40 bg-bunker-green/15">
                         <td className="py-4 pl-3 sm:pl-4 pr-4 font-mono tabular-nums text-bunker-green">{myRank.rank}</td>
-                        <td className="py-4 pr-4 text-white/95 font-medium truncate" title={myRank.displayName || 'You'}>{myRank.displayName || 'You'} (You)</td>
+                        <td
+                          className="py-4 pr-4 text-white/95 font-medium truncate"
+                          title={myRank.displayName || 'You'}
+                          style={bunkerTagNameStyle(
+                            myRank.leaderboardBunkerTag ?? user?.leaderboardBunkerTag,
+                            myRank.leaderboardGlowColor ?? user?.leaderboardGlowColor
+                          )}
+                        >
+                          {myRank.displayName || 'You'} (You)
+                        </td>
+                        <td className="py-4 pr-4 text-[#B39CFF] font-mono text-sm">—</td>
                         <td className="py-4 pr-4 text-white/95 font-mono tabular-nums">{myRank.totalSiphoned.toFixed(2)}</td>
                         <td className="py-4 pr-4 text-white/95 font-mono tabular-nums">{myRank.biggestExtract.toFixed(2)}</td>
                       </tr>

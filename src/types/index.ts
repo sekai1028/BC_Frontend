@@ -7,6 +7,7 @@ export interface User {
   verified: boolean
   gold: number
   metal: number
+  sscEarned?: number
   wagerCap: number
 }
 

@@ -17,7 +17,15 @@ interface ShopItem {
   name: string
   type: 'consumable' | 'permanent' | 'hybrid'
   price: number
-  effect: { gold?: number; metalSpeed?: number; oracleSpeed?: number }
+  effect: {
+    gold?: number
+    metalSpeed?: number
+    oracleSpeed?: number
+    sscBonus?: number
+    propagandaFilter?: boolean
+    leaderboardBunkerTag?: boolean
+    leaderboardGlowColor?: string
+  }
 }
 
 const panelClass = 'glass-green w-full min-w-0 rounded-2xl p-4 sm:p-8'
@@ -29,6 +37,9 @@ function effectLabel(item: ShopItem): string {
   if (e.gold != null && e.gold > 0) parts.push(`${e.gold} Gold`)
   if (e.metalSpeed != null) parts.push(`+${e.metalSpeed}x Metal`)
   if (e.oracleSpeed != null) parts.push(`+${e.oracleSpeed}x Passive Gold`)
+  if (e.sscBonus != null && e.sscBonus > 0) parts.push(`+${e.sscBonus} SSC Residual Data`)
+  if (e.propagandaFilter) parts.push('2× video SSC')
+  if (e.leaderboardBunkerTag) parts.push(`Leaderboard glow (${e.leaderboardGlowColor || '#00FF41'})`)
   return parts.join(' · ') || '—'
 }
 
@@ -42,8 +53,10 @@ function isUpgrade(
   return false
 }
 
-function isOwned(item: ShopItem, metalMod: number, oracleMod: number): boolean {
+function isOwned(item: ShopItem, metalMod: number, oracleMod: number, user?: { propagandaFilter?: boolean; leaderboardBunkerTag?: boolean } | null): boolean {
   if (item.type === 'consumable') return false
+  if (item.id === 'propaganda-filter' && user?.propagandaFilter) return true
+  if (item.id === 'leaderboard-bunker-tags' && user?.leaderboardBunkerTag) return true
   if (item.effect.metalSpeed != null && (metalMod || 0) >= item.effect.metalSpeed) return true
   if (item.effect.oracleSpeed != null && (oracleMod || 0) >= (item.effect.oracleSpeed || 0)) return true
   return false
@@ -95,7 +108,14 @@ export default function Shop() {
       return nextParams
     }, { replace: true })
   }
-  const snapshotRef = useRef<{ gold: number; metalMod: number; oracleMod: number } | null>(null)
+  const snapshotRef = useRef<{
+    gold: number
+    metalMod: number
+    oracleMod: number
+    sscBal: number
+    propagandaFilter?: boolean
+    leaderboardBunkerTag?: boolean
+  } | null>(null)
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const processingStartedRef = useRef(false)
 
@@ -115,7 +135,15 @@ export default function Shop() {
     if (!success || !token) return
     setProcessing(true)
     const gold = user?.gold ?? 0
-    snapshotRef.current = { gold, metalMod, oracleMod }
+    const sscBal = user?.user_ssc_balance ?? user?.sscBalance ?? user?.sscEarned ?? 0
+    snapshotRef.current = {
+      gold,
+      metalMod,
+      oracleMod,
+      sscBal,
+      propagandaFilter: user?.propagandaFilter,
+      leaderboardBunkerTag: user?.leaderboardBunkerTag,
+    }
     const maxAttempts = 20
     let attempts = 0
     const poll = () => {
@@ -126,9 +154,15 @@ export default function Shop() {
           if (!data.user) return
           const u = data.user
           const prev = snapshotRef.current
+          const uSsc = u.user_ssc_balance ?? u.sscBalance ?? u.sscEarned ?? 0
           const changed =
             prev &&
-            (u.gold !== prev.gold || (u.metalMod ?? 0) !== prev.metalMod || (u.oracleMod ?? 0) !== prev.oracleMod)
+            (u.gold !== prev.gold ||
+              (u.metalMod ?? 0) !== prev.metalMod ||
+              (u.oracleMod ?? 0) !== prev.oracleMod ||
+              uSsc !== prev.sscBal ||
+              !!u.propagandaFilter !== !!prev.propagandaFilter ||
+              !!u.leaderboardBunkerTag !== !!prev.leaderboardBunkerTag)
           if (changed) {
             setUser(u)
             setProcessing(false)
@@ -290,7 +324,7 @@ export default function Shop() {
         <>
         <ul className="w-full min-w-0 space-y-2 sm:space-y-3">
           {paginatedItems.map((item) => {
-            const owned = isOwned(item, metalMod, oracleMod)
+            const owned = isOwned(item, metalMod, oracleMod, user)
             const upgrade = isUpgrade(item, metalMod, oracleMod)
             const buttonLabel = owned ? 'OWNED' : upgrade ? 'UPGRADE' : 'BUY'
             return (

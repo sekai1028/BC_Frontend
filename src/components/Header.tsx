@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { useGameStore } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
+import { vaultHeaderActive } from '../utils/vaultLegendEligibility'
 import aegisIcon from '../public/asset/aegis.png'
 import goldIcon from '../public/asset/gold.svg'
 import rankIcon from '../public/asset/Rank.svg'
@@ -37,7 +38,8 @@ function getMercyIntensityLevel(signals: number): 1 | 2 | 3 | 4 | 5 {
 export default function Header() {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
-  const { gold, mercyPot, mercyPotVelocity, mercyPotUpdatedAt, signalsDetected, gameState, guestRank } = useGameStore()
+  const { gold, mercyPot, mercyPotVelocity, mercyPotUpdatedAt, signalsDetected, gameState, guestRank, sscAdToast, sscFloatKey } =
+    useGameStore()
   const isRedLine = gameState === 'crashed' || gameState === 'liquidated'
   const displayRank = user?.rank ?? guestRank ?? 0
   const [menuOpen, setMenuOpen] = useState(false)
@@ -281,8 +283,16 @@ export default function Header() {
               </div>
             </div>
             <div
-              className={`glass-card flex min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center sm:px-2 sm:py-1.5 ${mercyIntensityClass}`}
+              className={`glass-card relative flex min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center sm:px-2 sm:py-1.5 ${mercyIntensityClass}`}
             >
+              {sscAdToast != null && (
+                <span
+                  key={sscFloatKey}
+                  className="ssc-mercy-float absolute -top-2 right-0 z-20 font-mono text-[9px] sm:text-[10px] font-bold tabular-nums text-emerald-300 pointer-events-none drop-shadow-[0_0_6px_rgba(0,255,128,0.8)]"
+                >
+                  +{sscAdToast.toFixed(3)} SSC
+                </span>
+              )}
               <div className={`flex shrink-0 items-center ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
                 <img src={dollarIcon} alt="" className="h-6 w-6 object-contain sm:h-7 sm:w-7" />
               </div>
@@ -371,11 +381,19 @@ export default function Header() {
           {/* Mercy Pot — wider card for 7 dp; tabular-nums keeps digits aligned */}
           <div
             id="header-mercy-balance"
-            className={`glass-card flex flex-col flex-shrink-0 hidden sm:flex ${mercyIntensityClass}
+            className={`glass-card relative flex flex-col flex-shrink-0 hidden sm:flex ${mercyIntensityClass}
               w-[128px] min-h-9 sm:w-[152px] sm:min-h-10 md:w-[172px] md:min-h-11 lg:w-[212px] lg:min-h-14 xl:w-[256px] xl:min-h-[64px] 2xl:w-[300px] 2xl:min-h-[76px]
               pl-3 pr-3 pt-2 pb-2 sm:pl-3 sm:pr-4 sm:pt-2.5 sm:pb-2 md:pl-3.5 md:pr-4 md:pt-2.5 md:pb-2.5 lg:pl-4 lg:pr-5 lg:pt-3 lg:pb-3 xl:pl-4 xl:pr-6 xl:pt-3 xl:pb-3 2xl:pl-5 2xl:pr-6 2xl:pt-3.5 2xl:pb-3.5`}
             style={{ borderRadius: 12 }}
           >
+            {sscAdToast != null && (
+              <span
+                key={sscFloatKey}
+                className="ssc-mercy-float absolute top-1 right-2 z-20 font-mono text-[10px] md:text-xs font-bold tabular-nums text-emerald-300 pointer-events-none drop-shadow-[0_0_8px_rgba(0,255,128,0.85)]"
+              >
+                +{sscAdToast.toFixed(3)} SSC
+              </span>
+            )}
             <div className={`flex flex-col flex-1 min-h-0 min-w-0 w-full ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 lg:gap-2 xl:gap-2.5 2xl:gap-3 flex-1 min-h-0 min-w-0">
                 <div className="shrink-0 flex items-center">
@@ -411,8 +429,21 @@ export default function Header() {
           >
           <Link
             to="/vault"
-            className={`flex items-center justify-center flex-1 min-w-0 ${user && displayRank >= 1 ? 'bunker-pulse' : ''}`}
+            className={`flex items-center justify-center flex-1 min-w-0 ${
+              user
+                ? vaultHeaderActive(user)
+                  ? 'bunker-pulse'
+                  : 'opacity-45 saturate-50'
+                : 'opacity-65'
+            }`}
             style={{ padding: 0 }}
+            title={
+              user
+                ? vaultHeaderActive(user)
+                  ? 'Enter the Vault'
+                  : 'Vault locked — requires 1.0 SSC, 5,000 Gold wagered, Oracle Level 10'
+                : 'Sign in to Enter the Vault'
+            }
           >
             <img
               src={enterVaultIcon}
@@ -499,6 +530,9 @@ export default function Header() {
                     </Link>
                     <Link to="/shop" onClick={() => setMenuOpen(false)} className={navItem}>
                       Black Market
+                    </Link>
+                    <Link to="/vault" onClick={() => setMenuOpen(false)} className={navItem}>
+                      Enter the Vault
                     </Link>
                     <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className={navItem}>
                       Leaderboard

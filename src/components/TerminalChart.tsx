@@ -746,7 +746,7 @@ export default function TerminalChart({ onDisplayValue }: TerminalChartProps) {
               boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
             }}
           >
-            {hoverPoint.multiplier.toFixed(3).replace('.', ',')}x
+            {hoverPoint.multiplier.toFixed(3)}x
           </div>
         </>
       )}

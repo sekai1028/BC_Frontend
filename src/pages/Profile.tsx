@@ -350,13 +350,15 @@ export default function Profile() {
                 <span className="w-1 h-4 bg-bunker-green rounded" /> Balance
               </h2>
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-bunker-green/30 bg-bunker-green/5 p-4">
-                  <span className="text-gray-500 text-xs block mb-1">Gold</span>
-                  <span className="text-bunker-green font-bold text-xl">{displayGold.toFixed(2)}</span>
+                <div className="rounded-xl border-2 border-yellow-500/50 bg-yellow-500/10 p-4">
+                  <span className="text-yellow-200/80 text-xs block mb-1">Gold</span>
+                  <span className="text-yellow-300 font-bold text-xl tabular-nums">{displayGold.toFixed(2)}</span>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                  <span className="text-gray-500 text-xs block mb-1">Metal</span>
-                  <span className="text-white text-xl font-bold">{(profileUser?.metal ?? 0).toFixed(2)}</span>
+                <div className="rounded-xl border-2 border-bunker-green/50 bg-emerald-950/50 p-4">
+                  <span className="text-emerald-200/70 text-xs block mb-1">SSC (total gained)</span>
+                  <span className="text-bunker-green font-bold text-xl tabular-nums">
+                    {(profileUser?.user_ssc_balance ?? profileUser?.sscBalance ?? profileUser?.sscEarned ?? 0).toFixed(5)}
+                  </span>
                 </div>
               </div>
               {((profileUser?.metalMod ?? 0) > 0 || (profileUser?.oracleMod ?? 0) > 0) && (
@@ -364,13 +366,13 @@ export default function Profile() {
                   <span className="text-gray-500 text-xs block mb-2">Permanent boosts (from Black Market)</span>
                   <div className="flex flex-wrap gap-3 text-sm">
                     {(profileUser?.metalMod ?? 0) > 0 && (
-                      <span className="text-bunker-green font-mono">+{profileUser!.metalMod}x Metal</span>
+                      <span className="text-bunker-green font-mono">+{profileUser!.metalMod}x SSC production</span>
                     )}
                     {(profileUser?.oracleMod ?? 0) > 0 && (
                       <span className="text-bunker-green font-mono">+{profileUser!.oracleMod}x Passive Gold</span>
                     )}
                   </div>
-                  <p className="text-gray-500 text-xs mt-2">Industrial Engine and other shop permanents are active. Metal balance above is the resource you earn in the Bunker.</p>
+                  <p className="text-gray-500 text-xs mt-2">Industrial Engine and other shop permanents are active. SSC total above tracks Syndicate Siphon Credits earned.</p>
                 </div>
               )}
             </div>

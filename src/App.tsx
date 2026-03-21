@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Terminal from './pages/Terminal'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
@@ -13,6 +13,7 @@ import Gateway from './pages/Gateway'
 import Manifesto from './pages/Manifesto'
 import Shop from './pages/Shop'
 import Admin from './pages/Admin'
+import Vault from './pages/Vault'
 import Layout from './components/Layout'
 import { useAuthStore } from './store/authStore'
 
@@ -37,10 +38,11 @@ function VerifyEmailPage() {
   return <VerifyEmail />
 }
 
-/** Protected route: redirect to login if not authenticated */
+/** Protected route: redirect to login if not authenticated (preserve intended path in `state.from`) */
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user)
-  if (!user) return <Navigate to="/" replace />
+  const location = useLocation()
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return <>{children}</>
 }
 
@@ -58,6 +60,7 @@ function App() {
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
           <Route path="/shop" element={<RequireAuth><Shop /></RequireAuth>} />
+          <Route path="/vault" element={<RequireAuth><Vault /></RequireAuth>} />
           <Route path="/intel" element={<Intel />} />
           <Route path="/about" element={<About />} />
           <Route path="/legal" element={<Navigate to="/about" replace />} />

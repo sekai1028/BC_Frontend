@@ -103,7 +103,15 @@ export default function CrashScreen() {
         if (!res.ok) throw new Error('Siphon failed')
         const data = await res.json()
         useGameStore.getState().setGold(data.gold)
-        setUser({ ...user, gold: data.gold })
+        setUser({
+          ...user,
+          gold: data.gold,
+          ...(typeof data.metal === 'number' ? { metal: data.metal } : {}),
+          ...(typeof data.sscEarned === 'number' ? { sscEarned: data.sscEarned } : {}),
+        })
+        const adSsc = typeof data.sscFromAd === 'number' ? data.sscFromAd : 0.002
+        useGameStore.getState().setSscAdToast(adSsc)
+        window.setTimeout(() => useGameStore.getState().setSscAdToast(null), 6500)
       } catch {
         useGameStore.getState().addGold(1)
       }
