@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti'
 import { GUILT_TRIP_HOOK, getRandomGuiltTrip } from '../data/guiltTripPool'
 import { getRandomExtractionHeadline, getRandomRetreatHeadline } from '../data/crashBannerPools'
 import { stopBgm, startAppBgm, playSuccessBannerSound, ASSET } from '../utils/audio'
-import { SSC_PER_10S_SITE_IDLE, SSC_PER_SECOND_ROUND } from '../constants/ssc'
+import { formatSscForUi } from '../utils/gameNumberFormat'
 
 const MIN_RESULTS_DISPLAY_MS = 7000 // Results screen must stay open at least 7s before Skip/Continue (even if skip pressed)
 /** Same constant rate as Terminal multiplier display (multiplier units per second) */
@@ -28,7 +28,6 @@ export default function SuccessBanner() {
     ghostCrashed,
     ghostCrashedAt,
     foldMercyContribution,
-    foldSscEarned,
     leaderboardRank,
     leaderboardTotalPlayers,
     gameState,
@@ -61,6 +60,7 @@ export default function SuccessBanner() {
   }
   const { multiplier, profit } = snapshotRef.current ?? { multiplier: foldMultiplier, wager: currentWager, profit: 0 }
   const isVictory = multiplier > 1.0
+  const blockedSscCopy = '0.000000'
   const foldKey = `${foldMultiplier}-${currentWager}`
   const victoryHeadline = headlineRef.current ?? (isVictory ? getRandomExtractionHeadline() : getRandomRetreatHeadline())
 
@@ -207,38 +207,45 @@ export default function SuccessBanner() {
             </p>
           )}
 
-          {/* Mercy Stat — glows green */}
-          {foldMercyContribution > 0 && (
+          {/* SSC Stat — per-round amount added to personal vault and matched to global Mercy Pot */}
+          {user && (foldMercyContribution > 0 || isVictory) && (
             <div
-              className="text-xs sm:text-sm mb-1 font-sans font-semibold"
+              className="text-xs sm:text-sm mb-1 font-sans font-semibold tabular-nums"
               style={{
-                color: '#7CFF95',
-                textShadow: '0 1px 3px #000, 0 0 8px rgba(0,255,65,0.35)',
+                color: '#7dd3fc',
+                textShadow: '0 1px 3px #000, 0 0 10px rgba(56,189,248,0.4)',
               }}
             >
-              MERCY POT CONTRIBUTION: +${foldMercyContribution.toFixed(2)}
-            </div>
-          )}
-
-          {foldSscEarned != null && foldSscEarned > 0 && (
-            <div
-              className="text-[11px] sm:text-xs mb-1 font-mono leading-snug"
-              style={{
-                color: '#5CFFB8',
-                textShadow: '0 1px 3px #000',
-              }}
-            >
-              [{isVictory ? 'SUCCESS' : 'DEFEAT'}] Round SSC (reported): +{foldSscEarned.toFixed(6)} = time ×{' '}
-              {SSC_PER_SECOND_ROUND}/s — not added again; site idle +{SSC_PER_10S_SITE_IDLE}/10s is the master clock.
+              {foldMercyContribution > 0 ? (
+                <>
+                  +{formatSscForUi(foldMercyContribution)} SSC Added to Personal Vault
+                  <br />
+                  +{formatSscForUi(foldMercyContribution)} SSC Contributed to Global Mercy Pot (Matched)
+                </>
+              ) : (
+                <>
+                  +{blockedSscCopy} SSC Syndicate Firewall is Enabled.
+                  <br />
+                  +{blockedSscCopy} SSC Syndicate Firewall is Enabled. (Matched)
+                </>
+              )}
             </div>
           )}
 
           {/* GDD 2.7.4: Leaderboard rank */}
           {leaderboardRank != null && leaderboardRank > 0 && (
-            <div className="text-xs sm:text-sm text-white mb-0.5 sm:mb-1 font-terminal" style={{ textShadow: '0 1px 2px #000' }}>
-              YOUR RANK: <span className="font-bold" style={{ color: '#7CFF95' }}>{leaderboardRank.toLocaleString()}</span>
+            <div
+              className="text-sm sm:text-base md:text-lg text-white mb-0.5 sm:mb-1 font-terminal leading-tight"
+              style={{ textShadow: '0 1px 2px #000' }}
+            >
+              YOUR RANK:{' '}
+              <span className="font-extrabold text-base sm:text-lg md:text-2xl tabular-nums" style={{ color: '#7CFF95' }}>
+                {leaderboardRank.toLocaleString()}
+              </span>
               {leaderboardTotalPlayers != null && leaderboardTotalPlayers > 0 && (
-                <span className="text-gray-300 text-xs sm:text-sm ml-1.5">of {leaderboardTotalPlayers.toLocaleString()} players</span>
+                <span className="text-gray-300 text-xs sm:text-sm md:text-base ml-1.5 font-semibold">
+                  of {leaderboardTotalPlayers.toLocaleString()} players
+                </span>
               )}
             </div>
           )}

@@ -5,6 +5,8 @@ export type AdminUser = {
   gold: number
   bannedFromChat?: boolean
   rank?: number
+  totalSiphoned?: number
+  totalRounds?: number
 }
 
 export type AdminChatMessage = {

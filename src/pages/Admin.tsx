@@ -11,13 +11,16 @@ import AdminChatPage from './admin/AdminChatPage'
 export default function Admin() {
   return (
     <AdminProvider>
-      <Routes>
-        <Route element={<AdminLayout />}>
-          <Route index element={<AdminHome />} />
-          <Route path="users" element={<AdminUsersPage />} />
-          <Route path="chat" element={<AdminChatPage />} />
-        </Route>
-      </Routes>
+      {/* Fill Layout minimal main; AdminLayout scrolls inside so long /admin/users tables aren’t clipped */}
+      <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
+        <Routes>
+          <Route element={<AdminLayout />}>
+            <Route index element={<AdminHome />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="chat" element={<AdminChatPage />} />
+          </Route>
+        </Routes>
+      </div>
     </AdminProvider>
   )
 }

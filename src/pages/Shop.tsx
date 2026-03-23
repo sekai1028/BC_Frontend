@@ -3,14 +3,14 @@
  * 5.3: UID/SKU_ID metadata; payment_intent.succeeded; Processing Data Stream loader; UPGRADE + confirmation.
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const PROTOCOL_NOTICE =
-  'PROTOCOL NOTICE: Hold or Fold is a digital architecture simulation. All siphoned assets—Gold, Metal, and the Global Mercy Pot—are Internal Game Tokens (Syndicate Siphon Credits). These units are exclusively for bunker restoration and digital progression. They possess no external monetary value and are non-exchangeable. All transactions provide a permanent license for virtual assets within the simulation environment.'
+  'PROTOCOL NOTICE: Hold or Fold is a digital architecture simulation. All siphoned assets—Gold and the SSC Global Mercy Pot—are Internal Game Tokens (Syndicate Siphon Credits). These units are exclusively for bunker restoration and digital progression. They possess no external monetary value and are non-exchangeable. All transactions provide a permanent license for virtual assets within the simulation environment.'
 
 interface ShopItem {
   id: string
@@ -25,14 +25,49 @@ interface ShopItem {
     propagandaFilter?: boolean
     leaderboardBunkerTag?: boolean
     leaderboardGlowColor?: string
+    tipArchitect?: boolean
+    mercyPotSsc?: number
   }
 }
 
 const panelClass = 'glass-green w-full min-w-0 rounded-2xl p-4 sm:p-8'
-const ITEMS_PER_PAGE = 8
+/** Min / max bounds when deriving page size from viewport */
+const ITEMS_PER_PAGE_MIN = 3
+const ITEMS_PER_PAGE_MAX = 12
+/** Approximate height of one catalog row + gap (px); tuned for sm:flex-row cards */
+const APPROX_ITEM_ROW_PX = 96
+/** Fixed chrome: title, copy, errors, coupon block, pagination bar, protocol footer estimate */
+const LAYOUT_RESERVE_BASE_PX = 360
+const LAYOUT_RESERVE_STRIPE_TEST_PX = 210
+
+function useViewportItemsPerPage(showStripeTestPanel: boolean): number {
+  const [n, setN] = useState(6)
+  useEffect(() => {
+    const compute = () => {
+      const vh = window.visualViewport?.height ?? window.innerHeight
+      const reserve = LAYOUT_RESERVE_BASE_PX + (showStripeTestPanel ? LAYOUT_RESERVE_STRIPE_TEST_PX : 0)
+      const available = Math.max(180, vh - reserve)
+      const raw = Math.floor(available / APPROX_ITEM_ROW_PX)
+      const next = Math.min(ITEMS_PER_PAGE_MAX, Math.max(ITEMS_PER_PAGE_MIN, raw))
+      setN(next)
+    }
+    compute()
+    window.addEventListener('resize', compute)
+    window.visualViewport?.addEventListener('resize', compute)
+    return () => {
+      window.removeEventListener('resize', compute)
+      window.visualViewport?.removeEventListener('resize', compute)
+    }
+  }, [showStripeTestPanel])
+  return n
+}
 
 function effectLabel(item: ShopItem): string {
   const e = item.effect
+  if (e.tipArchitect) return 'Thank-you tip — supports the Architect'
+  if (e.mercyPotSsc != null && e.mercyPotSsc > 0) {
+    return `+${e.mercyPotSsc.toFixed(1)} SSC to Global Mercy Pot`
+  }
   const parts: string[] = []
   if (e.gold != null && e.gold > 0) parts.push(`${e.gold} Gold`)
   if (e.metalSpeed != null) parts.push(`+${e.metalSpeed}x Metal`)
@@ -76,13 +111,18 @@ export default function Shop() {
   const [couponLoading, setCouponLoading] = useState(false)
   const success = searchParams.get('success') === '1'
   const canceled = searchParams.get('canceled') === '1'
+  const showStripeTestPanel = import.meta.env.DEV || import.meta.env.VITE_SHOW_STRIPE_TEST === '1'
+  const itemsPerPage = useViewportItemsPerPage(showStripeTestPanel)
   const pageParam = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
   const [page, setPage] = useState(pageParam)
-  const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE))
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(items.length / Math.max(1, itemsPerPage))),
+    [items.length, itemsPerPage]
+  )
   const currentPage = Math.min(page, totalPages)
   const paginatedItems = items.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   )
 
   // When page in URL is out of range (e.g. ?page=5 but only 2 pages), clamp and update URL
@@ -97,7 +137,7 @@ export default function Shop() {
         return nextParams
       }, { replace: true })
     }
-  }, [currentPage, pageParam, items.length])
+  }, [currentPage, pageParam, items.length, setSearchParams])
   const goToPage = (p: number) => {
     const next = Math.max(1, Math.min(totalPages, p))
     setPage(next)
@@ -271,7 +311,7 @@ export default function Shop() {
 
   if (!user || !token) {
     return (
-      <div className={`${panelClass} max-w-full sm:max-w-2xl mx-auto`}>
+      <div className={`${panelClass} w-full max-w-full sm:max-w-2xl mx-auto box-border overflow-x-clip`}>
         <h1 className="text-2xl font-bold text-bunker-green mb-4">Black Market</h1>
         <p className="text-gray-400 mb-4">Sign in to access the Black Market and purchase Gold or permanent boosts.</p>
         <Link to="/login" className="text-bunker-green hover:underline">Sign in</Link>
@@ -280,7 +320,9 @@ export default function Shop() {
   }
 
   return (
-    <div className={`${panelClass} max-w-full sm:max-w-2xl mx-auto pb-6`}>
+    <div
+      className={`${panelClass} w-full max-w-full sm:max-w-2xl mx-auto box-border overflow-x-clip scrollbar-hide min-w-0 pb-[max(3rem,env(safe-area-inset-bottom,0px))] sm:pb-[max(4rem,env(safe-area-inset-bottom,0px))] mb-6 sm:mb-8`}
+    >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2 sm:mb-6">
         <h1 className="text-xl font-bold text-bunker-green sm:text-2xl">Black Market</h1>
         <Link to="/profile" className="shrink-0 text-sm text-white/60 transition hover:text-bunker-green">
@@ -309,7 +351,7 @@ export default function Shop() {
       )}
 
       <p className="text-white/55 text-sm mb-2">
-        Consumables add Gold once. Permanent items boost Metal or Passive Gold. GDD 5.2: Production cap 5.0x.
+        Consumables add Gold once. Permanent items boost Passive Gold or engine speed. GDD 5.2: Production cap 5.0x.
       </p>
       <p className="text-amber-600/90 text-sm mb-2">
         This replaces your current engine; boosts do not stack.
@@ -318,92 +360,161 @@ export default function Shop() {
         Real-money checkout uses Stripe. If Buy does nothing or shows “not configured,” the server needs STRIPE_SECRET_KEY. You can still redeem coupon codes (e.g. FREE10) below.
       </p>
 
+      {showStripeTestPanel && (
+        <div className="glass-inset mb-4 p-3 sm:p-4 rounded-xl border border-amber-500/50 bg-amber-950/25 text-left">
+          <h3 className="text-amber-200 font-bold text-xs sm:text-sm uppercase tracking-wider mb-1">
+            Stripe test checkout
+          </h3>
+          <p className="text-white/75 text-[11px] sm:text-xs mb-2 leading-relaxed">
+            In Stripe{' '}
+            <strong className="text-amber-100/90">Test mode</strong>, use card{' '}
+            <code className="text-amber-200 font-mono bg-black/40 px-1 rounded">4242 4242 4242 4242</code>, any future
+            expiry, any CVC. Same “Buy” flow as production — webhook must point at this API with test keys.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleBuy('emergency-signal')}
+              disabled={!!buyingId || !token}
+              className="glass-card px-2.5 py-1.5 rounded-lg border border-amber-500/40 text-amber-100 text-[11px] sm:text-xs font-mono hover:bg-amber-500/10 disabled:opacity-40"
+            >
+              Test $0.99 (40 Gold)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBuy('mercy-pot-donation-1ssc')}
+              disabled={!!buyingId || !token}
+              className="glass-card px-2.5 py-1.5 rounded-lg border border-sky-400/50 text-sky-200 text-[11px] sm:text-xs font-mono hover:bg-sky-500/15 disabled:opacity-40"
+            >
+              Test $1.00 (Mercy Pot)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBuy('tip-architect')}
+              disabled={!!buyingId || !token}
+              className="glass-card px-2.5 py-1.5 rounded-lg border border-amber-500/40 text-amber-100 text-[11px] sm:text-xs font-mono hover:bg-amber-500/10 disabled:opacity-40"
+            >
+              Test $1.99 (Tip)
+            </button>
+          </div>
+          <p className="text-white/40 text-[10px] mt-2">
+            Set <code className="text-white/50">VITE_SHOW_STRIPE_TEST=1</code> in production .env to show this panel when debugging.
+          </p>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-white/60">Loading catalog...</p>
       ) : (
-        <>
-        <ul className="w-full min-w-0 space-y-2 sm:space-y-3">
-          {paginatedItems.map((item) => {
-            const owned = isOwned(item, metalMod, oracleMod, user)
-            const upgrade = isUpgrade(item, metalMod, oracleMod)
-            const buttonLabel = owned ? 'OWNED' : upgrade ? 'UPGRADE' : 'BUY'
-            return (
-              <li
-                key={item.id}
-                className="glass-inset flex w-full min-w-0 flex-col gap-2 rounded-xl border border-white/10 p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2"
-              >
-                <div className="min-w-0 flex-1">
-                  <span className="text-white font-medium">{item.name}</span>
-                  <span className="ml-2 text-xs uppercase text-white/45">({item.type})</span>
-                  <div className="mt-0.5 text-sm text-white/65">{effectLabel(item)}</div>
-                </div>
-                <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end sm:gap-2">
-                  <span className="text-bunker-green font-bold">${item.price.toFixed(2)}</span>
-                  <button
-                    type="button"
-                    onClick={() => (owned ? undefined : handleBuy(item.id))}
-                    disabled={!!buyingId || owned}
-                    className="glass-card px-3 py-1.5 rounded-xl bg-bunker-green text-green font-bold text-sm hover:bg-bunker-green/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        <div className="w-full min-w-0 max-w-full rounded-2xl border border-bunker-green/30 bg-black/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_24px_rgba(0,0,0,0.25)] overflow-hidden box-border scrollbar-hide">
+          {/* Single panel: catalog + pager + coupon — shared horizontal inset (px-3 sm:px-4) so nothing “sticks out”) */}
+          <div className="px-3 sm:px-4 pt-3 sm:pt-4 pb-0 min-w-0 max-w-full">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-bunker-green/80 mb-3">Syndicate catalog</p>
+            <ul className="w-full min-w-0 max-w-full space-y-2 sm:space-y-3">
+              {paginatedItems.map((item) => {
+                const owned = isOwned(item, metalMod, oracleMod, user)
+                const upgrade = isUpgrade(item, metalMod, oracleMod)
+                const buttonLabel = owned ? 'OWNED' : upgrade ? 'UPGRADE' : 'BUY'
+                return (
+                  <li
+                    key={item.id}
+                    className="glass-inset flex w-full min-w-0 flex-col gap-2 rounded-xl border border-white/10 p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2"
                   >
-                    {buyingId === item.id ? 'Redirecting…' : buttonLabel}
-                  </button>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-        {totalPages > 1 && (
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="glass-card px-4 py-2.5 rounded-xl border border-white/10 text-bunker-green hover:bg-white/5 disabled:opacity-50 disabled:pointer-events-none font-display text-app-sm transition"
-            >
-              Previous
-            </button>
-            <span className="text-white/90 font-sans text-app-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="glass-card px-4 py-2.5 rounded-xl border border-white/10 text-bunker-green hover:bg-white/5 disabled:opacity-50 disabled:pointer-events-none font-display text-app-sm transition"
-            >
-              Next
-            </button>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-white font-medium">{item.name}</span>
+                      <span className="ml-2 text-xs uppercase text-white/45">({item.type})</span>
+                      <div className="mt-0.5 text-sm text-white/65">{effectLabel(item)}</div>
+                    </div>
+                    <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end sm:gap-2">
+                      <span className="text-bunker-green font-bold">${item.price.toFixed(2)}</span>
+                      <button
+                        type="button"
+                        onClick={() => (owned ? undefined : handleBuy(item.id))}
+                        disabled={!!buyingId || owned}
+                        className="glass-card px-3 py-1.5 rounded-xl bg-bunker-green text-green font-bold text-sm hover:bg-bunker-green/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {buyingId === item.id ? 'Redirecting…' : buttonLabel}
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
-        )}
-        </>
+
+          {totalPages > 1 && (
+            <div className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 bg-black/30 px-3 sm:px-4 py-3 min-w-0 max-w-full scrollbar-hide">
+              <button
+                type="button"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="glass-card px-4 py-2.5 rounded-xl border border-white/10 text-bunker-green hover:bg-white/5 disabled:opacity-50 disabled:pointer-events-none font-display text-app-sm transition"
+              >
+                Previous
+              </button>
+              <span className="text-white font-sans text-app-sm tabular-nums px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="glass-card px-4 py-2.5 rounded-xl border border-white/10 text-bunker-green hover:bg-white/5 disabled:opacity-50 disabled:pointer-events-none font-display text-app-sm transition"
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          <section
+            className="w-full min-w-0 max-w-full"
+            aria-labelledby="shop-coupon-heading"
+          >
+            {/* Same inset as catalog + same dark band as pagination (`bg-black/30`) so it doesn’t read “empty” vs rows */}
+            <div className="min-w-0 max-w-full border-t border-white/10 bg-black/30 px-3 sm:px-4 pt-4 pb-6 sm:pt-5 sm:pb-8">
+              <h3
+                id="shop-coupon-heading"
+                className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-bunker-green mb-1"
+              >
+                Coupon code
+              </h3>
+              <p className="text-white/50 text-xs mb-4 leading-relaxed">
+                Enter a syndicate clearance code. Gold and boosts apply instantly when valid.
+              </p>
+              <form
+                onSubmit={handleRedeemCoupon}
+                className="flex w-full min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3"
+              >
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="e.g. FREE10"
+                  autoComplete="off"
+                  className="glass-inset min-h-[44px] min-w-0 w-full max-w-full flex-1 px-3 py-2.5 sm:px-4 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-bunker-green/50 focus:border-bunker-green/60"
+                />
+                <button
+                  type="submit"
+                  disabled={couponLoading}
+                  className="min-h-[44px] w-full max-w-full shrink-0 rounded-xl px-4 py-2.5 sm:px-5 font-bold text-sm uppercase tracking-wide text-black bg-[#39ff14] border border-[#5dff4a] shadow-[0_0_10px_rgba(57,255,20,0.22)] hover:brightness-110 active:brightness-95 disabled:opacity-45 disabled:shadow-none disabled:pointer-events-none transition sm:w-auto sm:min-w-[7rem] sm:max-w-[min(100%,12rem)]"
+                >
+                  {couponLoading ? 'Redeeming…' : 'Redeem'}
+                </button>
+              </form>
+              {couponMessage && (
+                <p
+                  className={`mt-4 text-sm font-medium ${couponMessage.startsWith('Coupon') ? 'text-bunker-green' : 'text-red-400'}`}
+                  role="status"
+                >
+                  {couponMessage}
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
       )}
 
-      <div className="mt-6 pt-4 border-t glass-divider">
-        <h3 className="text-sm text-white/60 uppercase tracking-wider mb-2">Coupon code</h3>
-        <form onSubmit={handleRedeemCoupon} className="flex gap-2 flex-wrap">
-          <input
-            type="text"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value)}
-            placeholder="e.g. FREE10"
-            className="glass-inset flex-1 min-w-[120px] px-3 py-2 border border-white/15 rounded-xl text-white text-sm focus:outline-none focus:border-bunker-green/50"
-          />
-          <button
-            type="submit"
-            disabled={couponLoading}
-            className="glass-card px-3 py-2 rounded-xl bg-bunker-green/80 text-black font-bold text-sm hover:bg-bunker-green disabled:opacity-50"
-          >
-            {couponLoading ? 'Redeeming…' : 'Redeem'}
-          </button>
-        </form>
-        {couponMessage && (
-          <p className={`mt-2 text-sm ${couponMessage.startsWith('Coupon') ? 'text-bunker-green' : 'text-red-400'}`}>
-            {couponMessage}
-          </p>
-        )}
-      </div>
-
-      <div className="mt-8 pt-4 border-t glass-divider text-white/45 text-xs leading-relaxed">
+      <div className="mt-10 w-full min-w-0 max-w-full box-border rounded-xl border border-bunker-green/20 bg-black/30 px-3 py-4 sm:px-4 sm:py-5 text-white/50 text-xs leading-relaxed ring-1 ring-white/[0.06]">
         {PROTOCOL_NOTICE}
       </div>
 

@@ -26,7 +26,7 @@ export default function AdminLayout() {
 
   if (!authenticated) {
     return (
-      <div className="min-h-full w-full flex flex-col items-center justify-center p-6 relative">
+      <div className="min-h-full w-full flex flex-1 flex-col items-center justify-center p-6 relative overflow-y-auto">
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
           style={{
@@ -64,7 +64,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-full w-full text-white font-mono flex flex-col">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col text-white font-mono">
       <div
         className="fixed inset-0 opacity-[0.04] pointer-events-none z-0"
         style={{
@@ -143,12 +143,12 @@ export default function AdminLayout() {
       )}
 
       <main
-        className={`relative z-10 flex-shrink-0 max-w-5xl mx-auto w-full px-4 sm:px-6 flex flex-col min-h-0 ${
-          hideChrome ? 'py-4 pb-12' : 'py-6 pb-16'
+        className={`relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-clip max-w-5xl mx-auto w-full min-w-0 px-4 sm:px-6 ${
+          hideChrome ? 'py-4 pb-[max(3rem,env(safe-area-inset-bottom))]' : 'py-6 pb-[max(4rem,env(safe-area-inset-bottom))]'
         }`}
       >
         {error && (
-          <div className="glass-inset rounded-xl border border-red-500/50 px-4 py-3 text-red-400 text-sm flex items-center gap-2 mb-4">
+          <div className="glass-inset rounded-xl border border-red-500/50 px-4 py-3 text-red-400 text-sm flex items-center gap-2 mb-4 shrink-0">
             <span className="font-bold">Error:</span> {error}
             <button
               type="button"
@@ -159,7 +159,9 @@ export default function AdminLayout() {
             </button>
           </div>
         )}
-        <Outlet />
+        <div className="min-h-0 w-full flex-1 pb-8">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

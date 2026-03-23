@@ -37,7 +37,7 @@ export default function Vault() {
 
   const sscBal = useMemo(() => (user ? getSscWallet(user) : 0), [user])
   const wager = user?.totalWagered ?? user?.xp ?? 0
-  const oracle = user?.oracleLevel ?? 1
+  const oracle = user?.oracleLevel ?? 0
 
   const checks = useMemo(
     () => ({
@@ -63,20 +63,46 @@ export default function Vault() {
 
   if (!canOpenVaultProtocol(user)) {
     return (
-      <div className="min-h-screen min-h-[100dvh] w-full overflow-y-auto overflow-x-hidden scrollbar-hide px-3 py-6 sm:p-8">
+      <div className="vault-page-shell w-full overflow-x-hidden px-3 py-4 sm:py-6 sm:px-8 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
         <div className="mx-auto max-w-2xl vault-frame rounded-2xl p-6 sm:p-8">
           <h1 className="font-mono text-lg sm:text-xl font-bold uppercase tracking-wider text-[#a2f2ca] mb-2">
-            Vault Access — Locked
+            VAULT ACCESS — [ENCRYPTED]
           </h1>
-          <p className="text-white/70 text-sm font-mono mb-4">
-            Complete all requirements to unlock the Vault Access Protocol. The &quot;Enter the Vault&quot; button pulses in the header when you are eligible.
+          <p className="text-white/70 text-sm font-mono mb-4 leading-relaxed">
+            The airlocks are sealed. To breach the Vault, complete the Siphon Requirements below. The red &apos;ENTER THE
+            VAULT&apos; button will pulse on your Primary HUD once you are eligible.
           </p>
-          <div className="mb-6 rounded-lg border border-bunker-green/25 bg-black/30 px-4 py-3 text-xs sm:text-sm text-white/80 font-mono leading-relaxed">
-            <strong className="text-bunker-green">Note:</strong> The large green number in the header is the{' '}
-            <strong>Global Mercy Pot</strong> (shared by all players)—not your personal SSC. Your{' '}
-            <strong>personal SSC wallet</strong> is shown under <strong>Balance (Gold)</strong> as &quot;Your SSC · …&quot;. Vault checks{' '}
-            <strong>wagered</strong> Gold (lifetime), not your current Gold balance.
+          <div className="mb-8 rounded-lg border border-bunker-green/25 bg-black/30 px-4 py-4 sm:px-5 sm:py-5">
+            <h2 className="font-mono text-xs sm:text-sm font-bold uppercase tracking-[0.15em] text-[#a2f2ca] mb-4">
+              Syndicate intel &amp; clearance
+            </h2>
+            <div className="space-y-3.5 text-xs sm:text-sm font-mono text-white/75 leading-relaxed">
+              <p>
+                <span className="font-bold uppercase tracking-wide text-sky-300">The Global Mercy Pot: </span>
+                The large light-blue readout in your header is the Global Siphon—a shared reservoir of residue siphoned by the
+                entire Resistance. It represents the Bunker&apos;s collective power, not your personal wallet.
+              </p>
+              <p>
+                <span className="font-bold uppercase tracking-wide text-bunker-green">Personal SSC: </span>
+                Your individual progress is tracked as <span className="text-white/90">[YOUR SSC]</span> under your Gold
+                Balance. You need a {VAULT_LEGEND_MIN_SSC.toFixed(1)} threshold for authentication.
+              </p>
+              <p>
+                <span className="font-bold uppercase tracking-wide text-bunker-green">Lifetime logs: </span>
+                The Vault respects Risk, not just riches. Access is granted based on your Total Lifetime Allocated Gold, not
+                your current liquid assets.
+              </p>
+              <p>
+                <span className="font-bold uppercase tracking-wide text-bunker-green">The AI Oracle: </span>
+                To decrypt the inner archives, your Oracle must be overclocked to Level {VAULT_LEGEND_ORACLE_LEVEL}{' '}
+                <span className="text-white/60">(Current: Level {oracle})</span>. The Director only speaks to those with
+                high-level pattern recognition.
+              </p>
+            </div>
           </div>
+          <h2 className="font-mono text-xs sm:text-sm tracking-wide text-[#7dcda0] mb-3">
+            Siphon Requirements
+          </h2>
           <ul className="space-y-4 font-mono text-sm">
             <RequirementRow
               ok={checks.ssc}
@@ -85,8 +111,8 @@ export default function Vault() {
             />
             <RequirementRow
               ok={checks.wager}
-              label="Wager milestone"
-              detail={`≥ ${VAULT_LEGEND_WAGER_MILESTONE.toLocaleString('en-US')} Gold wagered (you: ${formatGoldWagerForUi(wager)})`}
+              label="Allocation milestone"
+              detail={`≥ ${VAULT_LEGEND_WAGER_MILESTONE.toLocaleString('en-US')} Gold allocated (you: ${formatGoldWagerForUi(wager)})`}
             />
             <RequirementRow
               ok={checks.oracle}
@@ -152,7 +178,7 @@ export default function Vault() {
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] w-full overflow-y-auto overflow-x-hidden scrollbar-hide px-3 py-6 sm:p-8 flex flex-col items-center">
+    <div className="vault-page-shell w-full overflow-x-hidden px-3 py-4 sm:py-6 sm:px-8 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] flex flex-col items-center">
       <div className="w-full max-w-3xl vault-frame rounded-2xl p-5 sm:p-8 relative">
         <button
           type="button"
@@ -244,7 +270,7 @@ function CredentialVerifiedScreen({ user, depositSsc }: { user: User; depositSsc
   const rankPadded = String(user.rank ?? 0).padStart(4, '0')
   const dep = formatSscForUi(depositSsc)
   return (
-    <div className="min-h-screen min-h-[100dvh] w-full overflow-y-auto overflow-x-hidden scrollbar-hide px-3 py-6 sm:p-8">
+    <div className="vault-page-shell w-full overflow-x-hidden px-3 py-4 sm:py-6 sm:px-8 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
       <div className="mx-auto max-w-5xl vault-credential-frame rounded-2xl p-6 sm:p-10">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
           <h1 className="font-mono text-2xl sm:text-3xl font-bold uppercase tracking-wide text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.35)]">

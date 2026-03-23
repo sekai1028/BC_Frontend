@@ -49,6 +49,33 @@ const BGM_ROTATE_INTERVAL_MS = 4 * 60 * 1000 // 4 minutes
 
 let appBgmRotateTimer: ReturnType<typeof setTimeout> | null = null
 
+function clearBgmRotateTimer(): void {
+  if (appBgmRotateTimer) {
+    clearTimeout(appBgmRotateTimer)
+    appBgmRotateTimer = null
+  }
+}
+
+/** One-shot round tracks (sodiac, cinematic) — must be stopped with BGM or they overlap */
+let currentOneShotStop: (() => void) | null = null
+
+function stopOneShot(): void {
+  if (currentOneShotStop) {
+    currentOneShotStop()
+    currentOneShotStop = null
+  }
+}
+
+/** Stop BGM element + stingers, but not the rotate timer (used inside startAppBgm). */
+function stopManagedPlaybackOnly(): void {
+  stopOneShot()
+  stopSuccessBannerSound()
+  if (currentBgmStop) {
+    currentBgmStop()
+    currentBgmStop = null
+  }
+}
+
 export function getBgmSettings(): BgmSettings {
   if (typeof localStorage === 'undefined') {
     return { enabled: true, volume: 0.35, mode: 'rotate', track: 1 }
@@ -73,10 +100,7 @@ export function setBgmSettings(s: Partial<BgmSettings>): void {
 
 /** Start or resume app BGM from settings (on load, after crash/boot, or when settings change). */
 export function startAppBgm(): void {
-  if (appBgmRotateTimer) {
-    clearTimeout(appBgmRotateTimer)
-    appBgmRotateTimer = null
-  }
+  clearBgmRotateTimer()
   const settings = getBgmSettings()
   if (!settings.enabled || !shouldPlaySfx()) {
     stopBgm()
@@ -84,6 +108,7 @@ export function startAppBgm(): void {
   }
   let path: string
   let trackIndex: number
+  let rotateNextIndex: number | null = null
   if (settings.mode === 'single') {
     trackIndex = settings.track - 1
     path = BGM_TRACK_PATHS[Math.max(0, Math.min(trackIndex, BGM_TRACK_PATHS.length - 1))]
@@ -91,18 +116,13 @@ export function startAppBgm(): void {
     const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(BGM_KEYS.rotateIndex) : null
     trackIndex = stored != null ? Math.max(0, Math.min(5, Number(stored) || 0)) : 0
     path = BGM_TRACK_PATHS[trackIndex]
-    const nextIndex = (trackIndex + 1) % 6
-    appBgmRotateTimer = setTimeout(() => {
-      appBgmRotateTimer = null
-      if (typeof localStorage !== 'undefined') localStorage.setItem(BGM_KEYS.rotateIndex, String(nextIndex))
-      startAppBgm()
-    }, BGM_ROTATE_INTERVAL_MS)
+    rotateNextIndex = (trackIndex + 1) % 6
   }
   const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || ''
   const baseUrl = base.replace(/\/$/, '') || ''
   const url = path.startsWith('http') ? path : baseUrl + path
   try {
-    stopBgm()
+    stopManagedPlaybackOnly()
     const audio = new Audio(url)
     audio.loop = true
     audio.volume = settings.volume
@@ -113,6 +133,13 @@ export function startAppBgm(): void {
       if (currentBgmStop === stop) currentBgmStop = null
     }
     currentBgmStop = stop
+    if (settings.mode === 'rotate' && rotateNextIndex != null) {
+      appBgmRotateTimer = setTimeout(() => {
+        appBgmRotateTimer = null
+        if (typeof localStorage !== 'undefined') localStorage.setItem(BGM_KEYS.rotateIndex, String(rotateNextIndex))
+        startAppBgm()
+      }, BGM_ROTATE_INTERVAL_MS)
+    }
   } catch {
     // ignore
   }
@@ -178,19 +205,21 @@ export function playSuccessBannerSound(path: string): void {
 
 let currentBgmStop: (() => void) | null = null
 
-/** Stop any currently playing BGM (so only one soundtrack plays at a time). */
+/**
+ * Stop all managed background/round audio: BGM, rotate timer, one-shots, success-banner SFX.
+ * Use when switching tracks or when the tab/app is hidden (mobile background / browser close).
+ */
 export function stopBgm(): void {
-  if (currentBgmStop) {
-    currentBgmStop()
-    currentBgmStop = null
-  }
+  clearBgmRotateTimer()
+  stopManagedPlaybackOnly()
 }
 
-/** Play a looping BGM track. Stops any existing BGM first so only one plays. Returns stop function. Respects SFX. */
+/** Play a looping BGM track. Stops any existing BGM / one-shots first. Returns stop function. Respects SFX. */
 export function playBgm(path: string, volume = 0.4): (() => void) | null {
   if (!shouldPlaySfx()) return null
   try {
-    stopBgm()
+    clearBgmRotateTimer()
+    stopManagedPlaybackOnly()
     const audio = new Audio(path)
     audio.loop = true
     audio.volume = volume
@@ -207,16 +236,40 @@ export function playBgm(path: string, volume = 0.4): (() => void) | null {
   }
 }
 
-/** Play a one-shot track; stops BGM first. When finished, calls onEnded (e.g. to restart BGM). Respects SFX. */
+/**
+ * Play a one-shot round sting; stops BGM + any previous one-shot so two tracks never overlap.
+ * When finished, calls onEnded (e.g. startAppBgm).
+ */
 export function playSoundtrackOneShot(path: string, onEnded?: () => void): void {
-  if (!shouldPlaySfx()) return
+  if (!shouldPlaySfx()) {
+    onEnded?.()
+    return
+  }
   try {
-    stopBgm()
-    const audio = new Audio(path)
+    clearBgmRotateTimer()
+    stopManagedPlaybackOnly()
+    const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || ''
+    const baseUrl = base.replace(/\/$/, '') || ''
+    const url = path.startsWith('http') ? path : baseUrl + (path.startsWith('/') ? path : '/' + path)
+    const audio = new Audio(url)
     audio.volume = 0.8
-    audio.onended = () => { onEnded?.() }
-    audio.play().catch(() => { onEnded?.() })
+    const stop = () => {
+      audio.pause()
+      audio.currentTime = 0
+      audio.onended = null
+      if (currentOneShotStop === stop) currentOneShotStop = null
+    }
+    currentOneShotStop = stop
+    audio.onended = () => {
+      if (currentOneShotStop === stop) currentOneShotStop = null
+      onEnded?.()
+    }
+    audio.play().catch(() => {
+      stop()
+      onEnded?.()
+    })
   } catch {
+    stopOneShot()
     onEnded?.()
   }
 }
@@ -248,3 +301,28 @@ export const ASSET = {
     tenseCreepy: '/asset/Soundtrack-7-tense-creepy-atmosphere.mp3',
   },
 } as const
+
+/** Fired when the tab becomes visible so crash/boot overlays can restart looping BGM before app BGM. */
+export const BUNKER_AUDIO_VISIBLE_EVENT = 'bunker-audio-visible'
+
+let audioResumeClaimed = false
+
+/** CrashScreen / BootOverlay call when they take over BGM after returning from background. */
+export function claimAudioResumeForOverlay(): void {
+  audioResumeClaimed = true
+}
+
+/**
+ * After the document becomes visible: notify overlays (sync), then start app BGM on the next frame
+ * if no overlay claimed audio (avoids double BGM with crash/boot loops).
+ */
+export function notifyDocumentVisibleAndMaybeResumeAppBgm(): void {
+  audioResumeClaimed = false
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(BUNKER_AUDIO_VISIBLE_EVENT))
+  }
+  requestAnimationFrame(() => {
+    if (!audioResumeClaimed) startAppBgm()
+    audioResumeClaimed = false
+  })
+}

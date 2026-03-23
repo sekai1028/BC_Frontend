@@ -156,7 +156,7 @@ export default function WagerInput({
         </div>
         {!readOnly && (
           <p className="text-app-xs text-gray-500 mt-1 font-sans">
-            Max Wager Cap: {wagerCap.toFixed(2)} Gold
+            Max Allocation Cap: {wagerCap.toFixed(2)} Gold
           </p>
         )}
       </div>
@@ -265,7 +265,7 @@ export function WagerFractionButtons({
         disabled={readOnly || maxWager <= 0}
         className={`font-terminal transition disabled:cursor-default lg:order-4 ${sizeClass}`}
         style={presetStyle(false)}
-        title="Double current payload (capped at wager max)"
+        title="Double current payload (capped at allocation cap)"
       >
         ×2
       </button>
@@ -305,7 +305,7 @@ export function WagerFractionButtons({
         disabled={readOnly || maxWager <= 0}
         className={`font-terminal transition disabled:cursor-default ${sizeClass}`}
         style={presetStyle(false)}
-        title="Double current payload (max wager cap)"
+        title="Double current payload (max allocation cap)"
       >
         2×
       </button>

@@ -21,7 +21,7 @@ export default function Intel() {
           </p>
         </section>
         <section>
-          <h2 className="text-bunker-green font-bold text-lg mb-2">What is the Mercy Pot?</h2>
+          <h2 className="text-sky-300 font-bold text-lg mb-2">What is the Mercy Pot?</h2>
           <p className="text-sm">
             A global stat that ticks up as the community plays. It represents the collective &quot;Resistance&quot;
             siphoning the Syndicate. Contributions come from rounds and rewarded ads.

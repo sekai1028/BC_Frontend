@@ -41,15 +41,17 @@ export default function HeadlineNotification() {
       role="alert"
       aria-live="assertive"
     >
-      <div
-        className="oracle-intel-panel pointer-events-none rounded-xl max-w-[min(100vw-1.5rem,40rem)] w-full mx-auto overflow-hidden border-2 shadow-2xl"
-        style={{
-          backgroundColor: 'rgba(8,6,12,0.97)',
-          borderColor: '#BF00FF',
-          boxShadow: '0 0 0 1px #BF00FF, 0 0 24px rgba(191,0,255,0.45), 0 12px 40px rgba(0,0,0,0.75)',
-          animation: 'headline-enter 0.2s ease-out forwards',
-        }}
-      >
+      {/* Wrapper keeps vertical nudge; inner panel uses transform for headline-enter so scale doesn’t wipe translate */}
+      <div className="w-full max-w-[min(100vw-1.5rem,40rem)] mx-auto -translate-y-8 sm:-translate-y-10 md:-translate-y-12">
+        <div
+          className="oracle-intel-panel pointer-events-none rounded-xl w-full overflow-hidden border-2 shadow-2xl"
+          style={{
+            backgroundColor: 'rgba(8,6,12,0.97)',
+            borderColor: '#BF00FF',
+            boxShadow: '0 0 0 1px #BF00FF, 0 0 24px rgba(191,0,255,0.45), 0 12px 40px rgba(0,0,0,0.75)',
+            animation: 'headline-enter 0.2s ease-out forwards',
+          }}
+        >
         {/* Header: small warn icon + ORACLE_INTEL // BREACH_OVERRIDE + status dot */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-[#BF00FF]/40 gap-2">
           <img
@@ -100,6 +102,7 @@ export default function HeadlineNotification() {
           <span className="font-mono text-[11px] sm:text-xs tracking-wider font-medium" style={{ color: '#e879f9' }}>
             ● PROCESSING ENCRYPTED FEED…
           </span>
+        </div>
         </div>
       </div>
     </div>

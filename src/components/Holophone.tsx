@@ -11,6 +11,7 @@ import { getVaultUpgradeInfo, VAULT_LEVELS } from '../data/vaultLevels'
 import { ORACLE_LEVELS, getIdleRatePerSecond } from '../data/oracleLevels'
 import { ACHIEVEMENT_LIST } from '../data/achievements'
 import { getGuestId, getOrCreateGuestDisplayName } from '../utils/guestIdentity'
+import { SSC_VIDEO_AD } from '../constants/ssc'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const DISMISSED_NOTIFICATIONS_KEY = 'bunker_holophone_dismissed_notifications_v1'
@@ -153,11 +154,17 @@ export default function Holophone(props: HolophonePanelProps) {
     (user?.rank ?? 0) >= nextUpgrade.requiredRank &&
     (user?.gold ?? 0) >= nextUpgrade.costGold
 
-  const baseOracleLevel = user?.oracleLevel ?? 1
-  const oracleLevel = baseOracleLevel + (user?.oracleMod ?? 0)
-  const oracleRatePerSec = getIdleRatePerSecond(oracleLevel)
-  const nextOracle = baseOracleLevel < 10 ? ORACLE_LEVELS[baseOracleLevel] : null
-  const canUpgradeOracle = nextOracle && (user?.gold ?? 0) >= (nextOracle.upgradeGold ?? 0)
+  const baseOracleLevel = user?.oracleLevel ?? 0
+  const oracleLevel = Math.min(10, baseOracleLevel + (user?.oracleMod ?? 0))
+  const oracleRatePerSec =
+    baseOracleLevel < 1 ? 0 : getIdleRatePerSecond(oracleLevel)
+  const upgradeFromRow = baseOracleLevel < 10 ? ORACLE_LEVELS[baseOracleLevel] : null
+  const nextTierRow = baseOracleLevel < 10 ? ORACLE_LEVELS[baseOracleLevel + 1] : null
+  const upgradeGoldCost = upgradeFromRow?.upgradeGold ?? 0
+  const canUpgradeOracle =
+    !!upgradeFromRow &&
+    baseOracleLevel < 10 &&
+    (user?.gold ?? 0) >= upgradeGoldCost
 
   const { totalRounds, bestStreak, winRate, avgMultiplier } = useGameStore()
 
@@ -230,7 +237,7 @@ export default function Holophone(props: HolophonePanelProps) {
           ...(typeof data.metal === 'number' ? { metal: data.metal } : {}),
           ...(typeof data.sscEarned === 'number' ? { sscEarned: data.sscEarned } : {}),
         })
-        const adSsc = typeof data.sscFromAd === 'number' ? data.sscFromAd : 0.002
+        const adSsc = typeof data.sscFromAd === 'number' ? data.sscFromAd : SSC_VIDEO_AD
         useGameStore.getState().setSscAdToast(adSsc)
         window.setTimeout(() => useGameStore.getState().setSscAdToast(null), 6500)
         if (Array.isArray(data.newAchievements) && data.newAchievements.length > 0) {
@@ -373,7 +380,7 @@ export default function Holophone(props: HolophonePanelProps) {
     const seed = [
       { title: 'RE: THE VAULT', desc: 'Your recent extraction has been flagged…', highlight: true, alert: false },
       { title: 'ORACLE', desc: 'New Lore Chapter Unlocked: The Collapse…', highlight: false, alert: false },
-      { title: 'SYSTEM ALERT', desc: 'Wager Cap reached. Upgrade required.', highlight: false, alert: true },
+      { title: 'SYSTEM ALERT', desc: 'Allocation Cap reached. Upgrade required.', highlight: false, alert: true },
       { title: 'ENCRYPTED MESSAGE', desc: 'Decrypt key required. Secure channel.', highlight: false, alert: false },
       { title: 'MISSION UPDATE', desc: 'Target located. Awaiting orders.', highlight: false, alert: false },
       { title: 'BLACK MARKET', desc: 'New tech available for trade.', highlight: false, alert: false }
@@ -498,7 +505,7 @@ export default function Holophone(props: HolophonePanelProps) {
             {activeApp === 'home' && (
               <>
                 <div className={PANEL_STYLE}>
-                  <div className={labelStyle}>Wager cap boost</div>
+                  <div className={labelStyle}>Allocation Cap Boost</div>
                   <div className="flex gap-0.5">
                     {Array.from({ length: 10 }, (_, i) => (
                       <div
@@ -520,7 +527,7 @@ export default function Holophone(props: HolophonePanelProps) {
                 <div className={PANEL_STYLE}>
                   <div className={labelStyle}>Storage Cell: Level {vaultLevel}</div>
                   <div className="text-[13px] text-gray-300">Max: <span className={VALUE_STYLE}>{currentCap} GOLD</span></div>
-                  {nextUpgrade && <div className="text-[13px] text-gray-400">Next Cap: <span className={VALUE_STYLE}>{nextUpgrade.wagerCap} GOLD</span></div>}
+                  {nextUpgrade && <div className="text-[13px] text-gray-400">Next allocation cap: <span className={VALUE_STYLE}>{nextUpgrade.wagerCap} GOLD</span></div>}
                 </div>
                 <div className={PANEL_STYLE}>
                   <div className={labelStyle}>Dossier: {(firstLockedAchievement || firstUnlockedAchievement)?.name ?? '—'}</div>
@@ -639,7 +646,8 @@ export default function Holophone(props: HolophonePanelProps) {
                   const isCompleted = cfg.level < oracleLevel
                   const isCurrent = cfg.level === oracleLevel
                   const ratePerSec = cfg.idleRatePer10s / 10
-                  const nextRate = nextOracle ? nextOracle.idleRatePer10s / 10 - ratePerSec : 0
+                  const nextRate =
+                    nextTierRow ? nextTierRow.idleRatePer10s / 10 - ratePerSec : 0
                   return (
                     <div
                       key={cfg.level}
@@ -651,10 +659,16 @@ export default function Holophone(props: HolophonePanelProps) {
                       {isCurrent && (
                         <>
                           <div className="text-white mt-1">Current Rate: <strong>{ratePerSec.toFixed(5)}/s</strong></div>
-                          {nextOracle && <div className="text-bunker-green mt-0.5">Next Benefit: <strong>+{nextRate.toFixed(5)}/s</strong> Oracle Rate</div>}
-                          {nextOracle?.upgradeGold != null && (
+                          {nextTierRow && (
+                            <div className="text-bunker-green mt-0.5">
+                              Next Benefit: <strong>+{nextRate.toFixed(5)}/s</strong> Oracle Rate
+                            </div>
+                          )}
+                          {upgradeFromRow && baseOracleLevel < 10 && (
                             <>
-                              <div className={`mt-1 font-bold ${VALUE_STYLE}`}>COST: {nextOracle.upgradeGold} GOLD</div>
+                              <div className={`mt-1 font-bold ${VALUE_STYLE}`}>
+                                COST: {upgradeGoldCost} GOLD
+                              </div>
                               {oracleError && <div className={`text-red-400 mt-1 ${compact ? 'text-[11px]' : 'text-app-xs'}`}>{oracleError}</div>}
                               <button
                                 onClick={handleOracleUpgrade}
@@ -672,7 +686,9 @@ export default function Holophone(props: HolophonePanelProps) {
                               </button>
                             </>
                           )}
-                          {!nextOracle && <div className="text-bunker-green/80 mt-1">Max level reached.</div>}
+                              {baseOracleLevel >= 10 && (
+                                <div className="text-bunker-green/80 mt-1">Max level reached.</div>
+                              )}
                         </>
                       )}
                     </div>
@@ -701,10 +717,10 @@ export default function Holophone(props: HolophonePanelProps) {
                       </div>
                       {isCurrent && (
                         <>
-                          <div className="text-bunker-green mt-1">CURRENT MAX WAGER: <span className={`font-bold ${VALUE_STYLE}`}>{currentCap} GOLD</span></div>
+                          <div className="text-bunker-green mt-1">CURRENT MAX ALLOCATION: <span className={`font-bold ${VALUE_STYLE}`}>{currentCap} GOLD</span></div>
                           {nextVault && (
                             <>
-                              <div className="text-gray-400">NEXT BENEFIT: UNLOCK <span className={VALUE_STYLE}>{nextVault.wagerCap} GOLD</span> WAGER CAP</div>
+                              <div className="text-gray-400">NEXT BENEFIT: UNLOCK <span className={VALUE_STYLE}>{nextVault.wagerCap} GOLD</span> ALLOCATION CAP</div>
                               <div className={`mt-1 font-bold ${VALUE_STYLE}`}>COST: {nextVault.costGold} GOLD</div>
                               <button
                                 onClick={handleVaultUpgrade}
@@ -719,7 +735,7 @@ export default function Holophone(props: HolophonePanelProps) {
                           {vaultError && <div className="text-red-400 text-[12px] mt-1">{vaultError}</div>}
                         </>
                       )}
-                      {isSecured && <div className="text-gray-500 mt-0.5">Max wager: {v.wagerCap} G</div>}
+                      {isSecured && <div className="text-gray-500 mt-0.5">Max allocation: {v.wagerCap} G</div>}
                     </div>
                   )
                 })}
@@ -782,8 +798,17 @@ export default function Holophone(props: HolophonePanelProps) {
                       {globalChatMessages.map((m) => (
                         <div key={m.id || `${m.username}-${m.text}-${m.time}`} className="text-[12px] group">
                           <div className="flex items-baseline justify-between gap-1">
-                            <span className="text-white/85">
-                              ({m.rank ?? 0}) {m.username}
+                            <span
+                              className={`text-white/85 ${
+                                m.isSystem
+                                  ? m.username === 'ORACLE'
+                                    ? 'text-[#ffffe0]'
+                                    : 'text-amber-400/95'
+                                  : ''
+                              }`}
+                            >
+                              {m.isSystem ? '' : `(${m.rank ?? 0}) `}
+                              {m.username}
                             </span>
                             <div className="flex items-center gap-1 shrink-0">
                               <span className="text-gray-500">{m.time || '—'}</span>

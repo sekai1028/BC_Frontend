@@ -22,7 +22,7 @@ export default function About() {
         <div className="mt-1 border-t border-bunker-green/25 pt-4 sm:pt-5">
           <p className="font-mono text-xs leading-relaxed text-white/85 sm:text-sm md:text-base">
             <span className="font-bold uppercase tracking-wide text-bunker-green">PROTOCOL NOTICE: </span>
-            Hold or Fold is a digital architecture simulation. All siphoned assets—Gold, Metal, and the Global Mercy
+            Hold or Fold is a digital architecture simulation. All siphoned assets—Gold, Metal, and the SSC Global Mercy
             Pot—are Internal Game Tokens (Syndicate Siphon Credits). These units are exclusively for bunker restoration
             and digital progression. They possess no external monetary value and are non-exchangeable.
           </p>

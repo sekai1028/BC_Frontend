@@ -68,7 +68,7 @@ interface GameState {
   ghostCrashedAt: number | null
   /** True if user pressed "Skip to end of run" — HOLD allowed immediately */
   ghostSkippedByUser: boolean
-  /** Mercy contribution from last fold (wager * 0.05) for banner display */
+  /** SSC earned this fold (also matched to global Mercy Pot) for banner display */
   foldMercyContribution: number
   /** GDD 19: Achievement unlock toast — IDs to show in System Notification */
   recentAchievementUnlocks: string[]
@@ -80,6 +80,20 @@ interface GameState {
   sscAdToast: number | null
   /** Bumps when a new float animation should play */
   sscFloatKey: number
+  /** Bumps on SSC “wins” (fold reward, video ad) — Header pulses Mercy Pot + Your SSC */
+  sscRewardPulseKey: number
+  /**
+   * SSC ad-revenue gate: tab visible + ad inventory ready + `last_ad_refresh_time` within the kill-switch
+   * window (default: refresh interval + buffer, see AD_REFRESH_KILL_SWITCH_MS). When false: idle SSC pauses.
+   */
+  bannerAdServingActive: boolean
+  /**
+   * Tab visible, inventory claims ready, but load/refresh heartbeat missing or stale (blocked / failed refresh).
+   * Distinct from hidden tab (no message) or no inventory (no message).
+   */
+  adRevenueSignalInterrupted: boolean
+
+  setAdRevenueSignalInterrupted: (interrupted: boolean) => void
 
   startRound: (wager: number) => void
   foldRound: () => void
@@ -131,6 +145,8 @@ interface GameState {
   setAdminEvent: (ev: { type: string } | null) => void
   setFoldSscEarned: (n: number | null) => void
   setSscAdToast: (n: number | null) => void
+  triggerSscRewardPulse: () => void
+  setBannerAdServingActive: (active: boolean) => void
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -181,6 +197,9 @@ export const useGameStore = create<GameState>((set) => ({
   foldSscEarned: null,
   sscAdToast: null,
   sscFloatKey: 0,
+  sscRewardPulseKey: 0,
+  bannerAdServingActive: false,
+  adRevenueSignalInterrupted: false,
 
   // Actions
   startRound: (wager) => set({ 
@@ -360,5 +379,9 @@ export const useGameStore = create<GameState>((set) => ({
     set((s) => ({
       sscAdToast: n,
       sscFloatKey: n != null ? s.sscFloatKey + 1 : s.sscFloatKey,
+      ...(n != null ? { sscRewardPulseKey: s.sscRewardPulseKey + 1 } : {}),
     })),
+  triggerSscRewardPulse: () => set((s) => ({ sscRewardPulseKey: s.sscRewardPulseKey + 1 })),
+  setBannerAdServingActive: (active) => set({ bannerAdServingActive: !!active }),
+  setAdRevenueSignalInterrupted: (interrupted) => set({ adRevenueSignalInterrupted: !!interrupted }),
 }))

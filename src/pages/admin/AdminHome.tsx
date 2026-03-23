@@ -130,7 +130,7 @@ export default function AdminHome() {
       <section className="glass-green rounded-2xl p-6">
         <h2 className="text-bunker-green font-bold text-sm uppercase tracking-widest mb-2 flex items-center gap-2">
           <span className="w-1 h-4 bg-bunker-green rounded" />
-          Global Mercy Pot (SSC)
+          SSC Global Mercy Pot
         </h2>
         <p className="text-white/50 text-xs mb-3">Set total or reset to 0. All connected clients receive the update.</p>
         <div className="flex flex-wrap items-end gap-3">

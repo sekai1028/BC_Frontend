@@ -1,6 +1,8 @@
 import { ReactNode, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import Header from './Header'
+import BannerAdServingBridge from './BannerAdServingBridge'
+import FakeAdHeartbeat from './FakeAdHeartbeat'
 import GlobalChat from './GlobalChat'
 import LeftSidebar from './LeftSidebar'
 import LevelUpBanner from './LevelUpBanner'
@@ -10,7 +12,7 @@ import { useAuthStore } from '../store/authStore'
 import { useGameStore } from '../store/gameStore'
 import { useSocket } from '../hooks/useSocket'
 import { getRankFromXP, getGuestTotalWagered } from '../utils/rankFromXP'
-import { startAppBgm } from '../utils/audio'
+import { startAppBgm, stopBgm, notifyDocumentVisibleAndMaybeResumeAppBgm } from '../utils/audio'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
@@ -28,6 +30,7 @@ export default function Layout({ children }: LayoutProps) {
   const setMercyPotUpdate = useGameStore((s) => s.setMercyPotUpdate)
   const setSignalsDetected = useGameStore((s) => s.setSignalsDetected)
   const isRunning = useGameStore((s) => s.isRunning)
+  const bannerAdServingActive = useGameStore((s) => s.bannerAdServingActive)
   const setWagerCap = useGameStore((s) => s.setWagerCap)
   const setLevelUpRank = useGameStore((s) => s.setLevelUpRank)
   const setGuestRank = useGameStore((s) => s.setGuestRank)
@@ -42,6 +45,24 @@ export default function Layout({ children }: LayoutProps) {
     const onSettingsChange = () => startAppBgm()
     window.addEventListener('bunker-bgm-settings-changed', onSettingsChange)
     return () => window.removeEventListener('bunker-bgm-settings-changed', onSettingsChange)
+  }, [])
+
+  // Stop all managed audio when tab/app is hidden or unloaded (mobile: reduce background playback).
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        stopBgm()
+      } else {
+        notifyDocumentVisibleAndMaybeResumeAppBgm()
+      }
+    }
+    const onPageHide = () => stopBgm()
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onPageHide)
+    }
   }, [])
   const prevGameStateRef = useRef(gameState)
   useEffect(() => {
@@ -154,11 +175,18 @@ export default function Layout({ children }: LayoutProps) {
     const path = location.pathname
     const isTerminal = path === '/' || path === '/play'
     const send = () => {
-      const payload: { page: string; terminalActive?: boolean; bunkerFocused?: boolean; userId?: string } =
+      const payload: {
+        page: string
+        terminalActive?: boolean
+        bunkerFocused?: boolean
+        userId?: string
+        bannerAdsServing?: boolean
+      } =
         isTerminal
           ? { page: 'terminal', terminalActive: isRunning }
           : { page: 'bunker', bunkerFocused: document.visibilityState === 'visible' }
       if (user?.id) payload.userId = user.id
+      payload.bannerAdsServing = useGameStore.getState().bannerAdServingActive
       socket.emit('mercy-presence', payload)
     }
     send()
@@ -170,13 +198,14 @@ export default function Layout({ children }: LayoutProps) {
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('focus', onFocus)
     }
-  }, [socket, location.pathname, isRunning, user?.id])
+  }, [socket, location.pathname, isRunning, user?.id, bannerAdServingActive])
+  const isAdminPath = location.pathname.startsWith('/admin')
   const minimalLayout =
     location.pathname === '/login' ||
     location.pathname === '/register' ||
     location.pathname === '/verify-email' ||
     location.pathname === '/manifesto' ||
-    location.pathname.startsWith('/admin') ||
+    isAdminPath ||
     (location.pathname === '/' && !token)
 
   /** On all screen sizes: show only header + page (no sidebar, no chat) for about/support (legacy /legal redirects) */
@@ -191,7 +220,8 @@ export default function Layout({ children }: LayoutProps) {
     !pageOnly &&
     (location.pathname === '/profile' ||
     location.pathname === '/shop' ||
-    location.pathname === '/leaderboard')
+    location.pathname === '/leaderboard' ||
+    location.pathname === '/vault')
 
   return (
     <div
@@ -206,8 +236,16 @@ export default function Layout({ children }: LayoutProps) {
         backgroundColor: '#000',
       }}
     >
+      <BannerAdServingBridge />
+      <FakeAdHeartbeat />
       {minimalLayout ? (
-        <main className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
+        <main
+          className={`flex-1 min-h-0 min-w-0 w-full max-w-full flex flex-col scrollbar-hide ${
+            isAdminPath
+              ? 'overflow-hidden overflow-x-clip'
+              : 'overflow-y-auto overflow-x-clip'
+          }`}
+        >
           {children}
         </main>
       ) : pageOnly ? (
@@ -215,7 +253,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="w-full min-w-0 max-w-full flex-shrink-0 px-2 pt-2 pb-1 sm:px-4 sm:pt-3 sm:pb-2">
             <Header />
           </div>
-          <main className="flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden px-2 pb-6 pt-0 sm:px-4 sm:pb-8">
+          <main className="flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden px-2 pb-6 pt-0 sm:px-4 sm:pb-8 scrollbar-hide">
             {children}
           </main>
         </>
@@ -254,14 +292,14 @@ export default function Layout({ children }: LayoutProps) {
                 className={`
                   flex-1 min-h-0 min-w-0 flex flex-col overflow-x-hidden
                   lg:flex-row lg:overflow-y-hidden lg:justify-center lg:items-stretch
-                  overflow-y-auto
+                  overflow-y-auto scrollbar-hide
                 `}
               >
                 <div
                   className={`${
                     mobilePageOnly
-                      ? /* profile / shop / leaderboard: don’t shrink below content — avoids clipped glass panels on mobile */
-                        'min-h-0 w-full max-w-full shrink-0'
+                      ? /* profile / shop / leaderboard: scroll inside column on lg (row layout); shrink-0 keeps full width on mobile */
+                        'min-h-0 w-full max-w-full shrink-0 lg:min-h-0 lg:overflow-y-auto scrollbar-hide'
                       : location.pathname === '/'
                         ? 'min-h-[80vh]'
                         : 'min-h-[70vh]'

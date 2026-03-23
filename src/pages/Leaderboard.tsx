@@ -160,7 +160,7 @@ export default function Leaderboard() {
   }
 
   return (
-    <div className="h-full min-h-0 w-full overflow-y-auto overflow-x-hidden scrollbar-hide">
+    <div className="h-full min-h-0 w-full overflow-y-auto overflow-x-clip scrollbar-hide">
       <div className="w-full px-1 sm:px-2 lg:px-0 pb-12">
         <div className="glass-green rounded-2xl p-5 sm:p-6 lg:p-7">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -176,7 +176,7 @@ export default function Leaderboard() {
               <p className="text-white/80 text-sm sm:text-base lg:text-lg">
                 {sort === 'biggestExtract' && 'Highest gold siphoned in a single run'}
                 {sort === 'totalSiphoned' && 'Total gold siphoned'}
-                {sort === 'biggestLoss' && 'Most gold lost in a single run (Graveyard)'}
+                {sort === 'biggestLoss' && 'Most gold lost in a single run (Top Class)'}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -201,7 +201,7 @@ export default function Leaderboard() {
                   onClick={() => goToSort('biggestLoss')}
                   className={`box-border flex-1 min-w-0 w-full xs:w-auto px-4 sm:px-5 py-2.5 font-mono text-xs sm:text-sm font-medium rounded-xl transition-colors border shrink-0 ${sort === 'biggestLoss' ? 'bg-amber-500/15 text-amber-300 border-amber-400/40 shadow-[0_0_12px_rgba(251,191,36,0.15)]' : 'text-white/70 hover:text-white hover:bg-white/10 border-transparent'}`}
                 >
-                  Graveyard
+                  Top Class
                 </button>
               </div>
               <button
@@ -252,7 +252,7 @@ export default function Leaderboard() {
             </div>
           </form>
           <p className="text-white/50 text-xs font-mono mb-4 -mt-2">
-            Exact name match (ignores case). Rank matches the tab you have selected ({sort === 'biggestExtract' ? 'best single run' : sort === 'totalSiphoned' ? 'total siphoned' : 'graveyard'}).
+            Exact name match (ignores case). Rank matches the tab you have selected ({sort === 'biggestExtract' ? 'best single run' : sort === 'totalSiphoned' ? 'total siphoned' : 'top class'}).
           </p>
 
           {searchError && <p className="text-red-400 mb-4 text-sm font-mono">{searchError}</p>}
@@ -269,14 +269,14 @@ export default function Leaderboard() {
                   No leaderboard entry with that name. They may use a different name in chat, or haven’t played a ranked round yet.
                 </p>
               ) : (
-                <div className="overflow-x-auto scrollbar-hide">
-                  <table className="w-full text-left text-sm sm:text-base table-fixed">
+                <div className="overflow-x-auto overflow-y-hidden -mx-1 px-1 sm:mx-0 sm:px-0 touch-pan-x overscroll-x-contain">
+                  <table className="w-full min-w-[36rem] text-left text-sm sm:text-base table-fixed">
                     <colgroup>
                       <col className="w-12 sm:w-14" />
-                      <col className="min-w-[100px]" />
+                      <col className="min-w-[7.5rem]" />
                       <col className="w-16 sm:w-20" />
-                      <col className="w-28 sm:w-32" />
-                      <col className="w-28 sm:w-32" />
+                      <col className="w-[7.25rem] sm:w-32" />
+                      <col className="w-[7.25rem] sm:w-32" />
                     </colgroup>
                     <thead>
                       <tr className={`border-b ${sort === 'biggestLoss' ? 'border-amber-400/25' : 'border-bunker-green/30'}`}>
@@ -320,14 +320,14 @@ export default function Leaderboard() {
 
           {error && <p className="text-red-400 mb-4 text-lg">{error}</p>}
 
-          <div className="glass-inset overflow-x-auto overflow-y-hidden rounded-2xl p-1 scrollbar-hide min-h-[320px]">
-            <table className="w-full text-left text-base sm:text-lg table-fixed">
+          <div className="glass-inset overflow-x-auto overflow-y-hidden rounded-2xl p-1 min-h-[320px] touch-pan-x overscroll-x-contain -mx-1 px-1 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[36rem] text-left text-sm sm:text-base md:text-lg table-fixed">
               <colgroup>
                 <col className="w-12 sm:w-14" />
-                <col className="min-w-[120px]" />
-                <col className="w-16 sm:w-24" />
-                <col className="w-28 sm:w-32" />
-                <col className="w-28 sm:w-32" />
+                <col className="min-w-[8rem] sm:min-w-[7.5rem]" />
+                <col className="w-[4.5rem] sm:w-24" />
+                <col className="w-[7.5rem] sm:w-32" />
+                <col className="w-[7.5rem] sm:w-32" />
               </colgroup>
               <thead>
                 <tr className={`border-b ${sort === 'biggestLoss' ? 'border-amber-400/25' : 'border-bunker-green/30'}`}>
@@ -405,35 +405,44 @@ export default function Leaderboard() {
               </tbody>
             </table>
           </div>
+          <p className="sm:hidden text-white/40 text-[10px] font-mono mt-2 text-center leading-snug">
+            Swipe the table horizontally to see all columns.
+          </p>
 
           {totalPages > 1 && (
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={!canPrev || loading}
-                className="glass-card px-4 py-2.5 rounded-xl border border-white/10 text-bunker-green hover:bg-white/5 disabled:opacity-50 disabled:pointer-events-none font-mono text-sm transition"
-              >
-                Previous
-              </button>
-              <span className="text-white/90 font-mono text-sm sm:text-base tabular-nums">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={!canNext || loading}
-                className="glass-card px-4 py-2.5 rounded-xl border border-white/10 text-bunker-green hover:bg-white/5 disabled:opacity-50 disabled:pointer-events-none font-mono text-sm transition"
-              >
-                Next
-              </button>
+            <div className="mt-6 w-full max-w-md mx-auto px-1">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-0 min-h-[2.75rem]">
+                <div className="flex justify-end min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={!canPrev || loading}
+                    className="glass-card shrink-0 px-3 py-2 rounded-xl border font-mono text-xs sm:text-sm transition border-white/12 bg-black/25 text-bunker-green hover:bg-white/5 hover:border-white/20 disabled:text-white/35 disabled:border-white/10 disabled:bg-black/20 disabled:hover:bg-black/20 disabled:pointer-events-none"
+                  >
+                    Previous
+                  </button>
+                </div>
+                <span className="text-white/85 font-mono text-[10px] sm:text-sm tabular-nums text-center leading-tight px-0.5">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="flex justify-start min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={!canNext || loading}
+                    className="glass-card shrink-0 px-3 py-2 rounded-xl border font-mono text-xs sm:text-sm transition border-white/12 bg-black/25 text-bunker-green hover:bg-white/5 hover:border-white/20 disabled:text-white/35 disabled:border-white/10 disabled:bg-black/20 disabled:hover:bg-black/20 disabled:pointer-events-none"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
           {!loading && entries.length === 0 && !error && (
             <p className="text-white/90 mt-6 text-lg sm:text-xl">
               {sort === 'biggestLoss'
-                ? 'No graveyard entries yet. Crash a round (don’t fold in time) to appear here.'
+                ? 'No Top Class entries yet. Crash a round (don’t fold in time) to appear here.'
                 : 'No entries yet. Play a round (Hold then Fold) to appear on the leaderboard.'}
             </p>
           )}

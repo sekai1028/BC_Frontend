@@ -222,7 +222,20 @@ export default function GlobalChat() {
           messages.map((msg) => (
             <div key={msg.id ?? msg.username + msg.text + msg.time} className="global-chat-body font-sans text-gray-300 group px-1 py-1 rounded-md border-b border-white/5">
               <div className="flex items-center justify-between gap-1">
-                <span className="global-chat-username text-white truncate">{msg.rank != null ? `(${msg.rank}) ` : ''}{msg.username}</span>
+                <span className="global-chat-username text-white truncate">
+                  {msg.rank != null && !msg.isSystem ? `(${msg.rank}) ` : ''}
+                  <span
+                    className={
+                      msg.isSystem
+                        ? msg.username === 'ORACLE'
+                          ? 'text-[#ffffe0]'
+                          : 'text-amber-400/95'
+                        : ''
+                    }
+                  >
+                    {msg.username}
+                  </span>
+                </span>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <span className="global-chat-timestamp text-gray-500">
                     {msg.time === 'now' ? 'now' : msg.time ? `${msg.time} ago` : ''}

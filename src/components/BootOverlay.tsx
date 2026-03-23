@@ -5,7 +5,14 @@
 // Use ?url so Vite resolves the asset path in dev and build
 import { useEffect, useRef } from 'react'
 import bootScreenUrl from '../public/asset/boot_screen.svg?url'
-import { playAssetMp3, playBgm, startAppBgm, ASSET } from '../utils/audio'
+import {
+  playAssetMp3,
+  playBgm,
+  startAppBgm,
+  ASSET,
+  BUNKER_AUDIO_VISIBLE_EVENT,
+  claimAudioResumeForOverlay,
+} from '../utils/audio'
 
 const BOOT_DISMISSED_KEY = 'bunker-boot-overlay-dismissed'
 const BOOT_REQUESTED_KEY = 'bunker-boot-requested'
@@ -46,6 +53,16 @@ export default function BootOverlay({ onDismiss }: BootOverlayProps) {
     return () => {
       stopBgmRef.current?.()
     }
+  }, [])
+
+  useEffect(() => {
+    const onVisible = () => {
+      claimAudioResumeForOverlay()
+      stopBgmRef.current?.()
+      stopBgmRef.current = playBgm(ASSET.soundtracks.tenseCreepy, 0.35) || null
+    }
+    window.addEventListener(BUNKER_AUDIO_VISIBLE_EVENT, onVisible)
+    return () => window.removeEventListener(BUNKER_AUDIO_VISIBLE_EVENT, onVisible)
   }, [])
 
   const handleDismiss = () => {

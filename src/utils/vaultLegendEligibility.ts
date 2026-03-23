@@ -15,7 +15,7 @@ export function canOpenVaultProtocol(user: User | null): boolean {
   if (!user || user.vaultLegendUnlocked) return false
   const ssc = getSscWallet(user)
   const wager = user.totalWagered ?? user.xp ?? 0
-  const oracle = user.oracleLevel ?? 1
+  const oracle = user.oracleLevel ?? 0
   return (
     ssc >= VAULT_LEGEND_MIN_SSC &&
     wager >= VAULT_LEGEND_WAGER_MILESTONE &&

@@ -7,9 +7,10 @@ import { getSscWallet, vaultHeaderActive } from '../utils/vaultLegendEligibility
 import aegisIcon from '../public/asset/aegis.png'
 import goldIcon from '../public/asset/gold.svg'
 import rankIcon from '../public/asset/Rank.svg'
-import dollarIcon from '../public/asset/$.png'
+import sscLogoIcon from '../public/asset/SSC-Logo.png'
 import enterVaultIcon from '../public/asset/enter_the_vault.svg'
-import { formatMercyPotForHeader, formatSscForUi } from '../utils/gameNumberFormat'
+import { formatMercyPotForHeader, formatSscAdReward, formatSscForHudTicker } from '../utils/gameNumberFormat'
+import { useMercyPotRafDisplay, usePersonalSscRafDisplay } from '../hooks/useSscSiphonHud'
 
 const DROPDOWN_GAP = 6
 /** Desktop / wide header menu width */
@@ -18,6 +19,10 @@ const DROPDOWN_WIDTH = 200
 const DROPDOWN_MAX_WIDTH_MOBILE = 192
 const LG_MIN_PX = 1024
 const LORE_URL = 'https://timingthetop.com'
+const SSC_BLOCKED_TOOLTIP =
+  "The Syndicate's firewall is blocking your uplink. Ensure your browser is not restricting external data streams (ads) to resume the siphon."
+const SIGNAL_INTERRUPTED_TOOLTIP =
+  'Kill-switch: last ad refresh is too old — SSC siphon paused. Call __bunkerAdImpression() on each successful container refresh; tune VITE_AD_REFRESH_INTERVAL_MS + VITE_AD_REFRESH_KILL_BUFFER_MS (e.g. 60s + 5s).'
 
 /** Mercy Pot display: extra precision in header; tabular-nums keeps columns stable */
 const MERCY_POT_DECIMAL_PLACES = 7
@@ -41,12 +46,15 @@ export default function Header() {
   const { user, logout } = useAuthStore()
   const { gold, mercyPot, mercyPotVelocity, mercyPotUpdatedAt, signalsDetected, gameState, guestRank, sscAdToast, sscFloatKey } =
     useGameStore()
+  const bannerAdServingActive = useGameStore((s) => s.bannerAdServingActive)
+  const adRevenueSignalInterrupted = useGameStore((s) => s.adRevenueSignalInterrupted)
+  const sscRewardPulseKey = useGameStore((s) => s.sscRewardPulseKey)
   const isRedLine = gameState === 'crashed' || gameState === 'liquidated'
   const displayRank = user?.rank ?? guestRank ?? 0
   const [menuOpen, setMenuOpen] = useState(false)
   const [dropdownLayout, setDropdownLayout] = useState<{ top: number; left: number; width: number } | null>(null)
-  const [mercyDisplay, setMercyDisplay] = useState(mercyPot)
   const [mercyJiggle, setMercyJiggle] = useState(false)
+  const [hudSscPulse, setHudSscPulse] = useState(false)
   /** Must be separate: only one ref per button — desktop header is `hidden` on mobile and would steal a shared ref. */
   const menuButtonMobileRef = useRef<HTMLButtonElement>(null)
   const menuButtonDesktopRef = useRef<HTMLButtonElement>(null)
@@ -128,17 +136,17 @@ export default function Header() {
     }
   }, [menuOpen])
 
-  // GDD 6: Interpolate Mercy Pot display using Global_Velocity between server updates (smooth tick)
+  const mercyDisplay = useMercyPotRafDisplay(mercyPot, mercyPotVelocity, mercyPotUpdatedAt)
+  const serverSscWallet = user ? getSscWallet(user) : null
+  const personalSscLive = usePersonalSscRafDisplay(serverSscWallet, !!user, bannerAdServingActive)
+
+  /** Dopamine pulse: successful SSC gain (fold / video ad) */
   useEffect(() => {
-    setMercyDisplay(mercyPot)
-    const t = setInterval(() => {
-      if (mercyPotUpdatedAt <= 0) return
-      const elapsed = (Date.now() - mercyPotUpdatedAt) / 1000
-      const next = Math.max(0, mercyPot + mercyPotVelocity * elapsed)
-      setMercyDisplay(next)
-    }, 100)
-    return () => clearInterval(t)
-  }, [mercyPot, mercyPotVelocity, mercyPotUpdatedAt])
+    if (sscRewardPulseKey <= 0) return
+    setHudSscPulse(true)
+    const t = window.setTimeout(() => setHudSscPulse(false), 780)
+    return () => clearTimeout(t)
+  }, [sscRewardPulseKey])
 
   // Jiggle only when a new mercy-pot-update **increases** the pot (not every 10s tick with same/rounded total)
   useEffect(() => {
@@ -165,16 +173,16 @@ export default function Header() {
   const formatMercyPot = (amount: number) =>
     formatMercyPotForHeader(amount, MERCY_POT_DECIMAL_PLACES)
 
-  const personalSscFormatted = user ? formatSscForUi(getSscWallet(user)) : null
+  const personalSscFormatted = user ? formatSscForHudTicker(personalSscLive) : null
 
   const signalsCopy = (n: number) =>
-    `${n} ${n === 1 ? 'Signal' : 'Signals'} = ${n}x Global Points`
+    `${n} ${n === 1 ? 'Signal' : 'Signals'} = ${n}x SSC Global Points`
 
-  // GDD 8.1: 4 decimal places for micro-ticks (passive gold); 2 for large amounts
+  // GDD 8.1: 6 decimal places under 1000 for micro-ticks; compact for large amounts
   const formatGold = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(2)}M`
     if (amount >= 1000) return `${(amount / 1000).toFixed(2)}K`
-    return amount < 1000 ? amount.toFixed(4) : amount.toFixed(2)
+    return amount < 1000 ? amount.toFixed(6) : amount.toFixed(2)
   }
 
   return (
@@ -192,7 +200,7 @@ export default function Header() {
               <Link
                 to="/play"
                 onClick={() => setMenuOpen(false)}
-                className="flex h-9 w-9 max-w-full items-center justify-center rounded-md cursor-pointer sm:h-10 sm:w-10
+                className="flex h-9 w-[100px] max-w-full items-center justify-center rounded-md cursor-pointer sm:h-[50px] sm:w-[100px]
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bunker-green/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50
                   hover:opacity-90 active:opacity-80 transition-opacity"
                 aria-label="Go to home — terminal chart"
@@ -283,37 +291,56 @@ export default function Header() {
                 {formatGold(gold)}
               </div>
               {user && personalSscFormatted != null && (
-                <div
-                  className="max-w-full truncate px-0.5 text-center font-mono text-[7px] sm:text-[8px] font-semibold tabular-nums text-[#21AD55] leading-tight"
-                  title={`Your personal SSC wallet: ${personalSscFormatted}`}
-                >
-                  Your SSC · {personalSscFormatted}
-                </div>
+                <>
+                  <div
+                    className={`max-w-full truncate px-0.5 text-center font-mono text-[8px] sm:text-[9px] font-semibold tabular-nums text-[#21AD55] leading-tight rounded-sm ${hudSscPulse ? 'ssc-hud-siphon-pulse-mint' : ''}`}
+                    title={`Your personal SSC wallet: ${personalSscFormatted}`}
+                  >
+                    Your SSC · {personalSscFormatted}{' '}
+                    <span
+                      className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/35 text-[8px] font-bold text-white/80 align-middle"
+                      title={SSC_BLOCKED_TOOLTIP}
+                      aria-label={SSC_BLOCKED_TOOLTIP}
+                    >
+                      i
+                    </span>
+                  </div>
+                  {adRevenueSignalInterrupted && (
+                    <div
+                      className="ad-revenue-signal-interrupted mt-0.5 w-full max-w-full rounded px-1 py-0.5 text-center font-mono font-bold tabular-nums"
+                      role="status"
+                      title={SIGNAL_INTERRUPTED_TOOLTIP}
+                    >
+                      SIGNAL INTERRUPTED
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div
-              className={`glass-card relative flex min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center sm:px-2 sm:py-1.5 ${mercyIntensityClass}`}
+              className={`glass-card relative flex min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 px-1 py-1 text-center sm:px-2 sm:py-1.5 ${mercyIntensityClass} ${hudSscPulse ? 'ssc-hud-siphon-pulse' : ''}`}
             >
               {sscAdToast != null && (
                 <span
                   key={sscFloatKey}
-                  className="ssc-mercy-float absolute -top-2 right-0 z-20 font-mono text-[9px] sm:text-[10px] font-bold tabular-nums text-emerald-300 pointer-events-none drop-shadow-[0_0_6px_rgba(0,255,128,0.8)]"
+                  className="ssc-mercy-float absolute -top-2 right-0 z-20 font-mono text-[9px] sm:text-[10px] font-bold tabular-nums text-sky-300 pointer-events-none drop-shadow-[0_0_8px_rgba(56,189,248,0.85)]"
                 >
-                  +{sscAdToast.toFixed(3)} SSC
+                  +{formatSscAdReward(sscAdToast)} SSC
                 </span>
               )}
-              <div className={`flex shrink-0 items-center ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
-                <img src={dollarIcon} alt="" className="h-6 w-6 object-contain sm:h-7 sm:w-7" />
+              <div className={`flex shrink-0 items-center justify-center ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
+                <img src={sscLogoIcon} alt="" className="h-6 w-6 object-contain sm:h-7 sm:w-7" />
               </div>
-              <div className="w-full min-w-0 px-0.5 font-mono text-[6px] font-medium uppercase leading-tight tracking-wider text-[#2DE85C] sm:text-[7px]">
-                GLOBAL MERCY POT
+              <div className="w-full min-w-0 px-0.5 text-center font-mono text-[6px] font-medium uppercase leading-tight tracking-wider text-[#7dd3fc] sm:text-[7px]">
+                SSC GLOBAL MERCY POT
               </div>
-              <div className="w-full min-w-0 px-0.5 font-mono text-[5px] sm:text-[6px] leading-tight text-white/45 normal-case tracking-normal">
+              <div className="w-full min-w-0 px-0.5 text-center font-mono text-[7px] sm:text-[8px] leading-snug text-white/55 normal-case tracking-normal">
                 Shared pool · not your wallet
               </div>
               <div
-                className="max-w-full overflow-x-auto whitespace-nowrap text-center font-mono text-[9px] font-bold tabular-nums text-[#21AD55] sm:text-[10px]"
-                title={`Global Mercy Pot (all players): ${formatMercyPot(mercyDisplay)}`}
+                className="max-w-full overflow-x-auto whitespace-nowrap text-center font-mono text-[9px] font-bold tabular-nums text-[#38bdf8] sm:text-[10px]"
+                style={{ textShadow: '0 0 8px rgba(56,189,248,0.45)' }}
+                title={`SSC Global Mercy Pot (all players): ${formatMercyPot(mercyDisplay)}`}
               >
                 {formatMercyPot(mercyDisplay)}
               </div>
@@ -329,7 +356,7 @@ export default function Header() {
     {/* Desktop (lg+): Logo → Balance → Rank → Mercy Pot → Vault → Profile/Sign-in → Menu; horizontal scroll if viewport too narrow */}
     <header
       role="banner"
-      className="hidden lg:flex glass-strong min-w-0 max-w-full justify-center items-center w-full overflow-x-auto overflow-y-hidden border border-white/10 rounded-2xl [scrollbar-width:thin]
+      className="hidden lg:flex glass-strong min-w-0 max-w-full justify-center items-center w-full overflow-x-auto overflow-y-hidden border border-white/10 rounded-2xl scrollbar-hide
         px-2 sm:px-3 md:px-4 lg:px-4 xl:px-6 2xl:px-6
         min-h-[48px] sm:min-h-[50px] md:min-h-[52px] lg:min-h-[56px] xl:min-h-[64px] 2xl:min-h-[72px]"
     >
@@ -374,12 +401,30 @@ export default function Header() {
                 {formatGold(gold)}
               </div>
               {user && personalSscFormatted != null && (
-                <div
-                  className="font-mono truncate text-[8px] sm:text-[9px] lg:text-[10px] text-[#21AD55] tabular-nums mt-0.5"
-                  title={`Your personal SSC wallet (Vault & ads): ${personalSscFormatted}`}
-                >
-                  Your SSC · {personalSscFormatted}
-                </div>
+                <>
+                  <div
+                    className={`font-mono truncate text-[9px] sm:text-[10px] lg:text-[11px] text-[#21AD55] tabular-nums mt-0.5 rounded-sm ${hudSscPulse ? 'ssc-hud-siphon-pulse-mint' : ''}`}
+                    title={`Your personal SSC wallet (Vault & ads): ${personalSscFormatted}`}
+                  >
+                    Your SSC · {personalSscFormatted}{' '}
+                    <span
+                      className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white/35 text-[8px] font-bold text-white/80 align-middle"
+                      title={SSC_BLOCKED_TOOLTIP}
+                      aria-label={SSC_BLOCKED_TOOLTIP}
+                    >
+                      i
+                    </span>
+                  </div>
+                  {adRevenueSignalInterrupted && (
+                    <div
+                      className="ad-revenue-signal-interrupted mt-0.5 w-full max-w-full rounded px-1.5 py-0.5 font-mono font-bold tabular-nums"
+                      role="status"
+                      title={SIGNAL_INTERRUPTED_TOOLTIP}
+                    >
+                      SIGNAL INTERRUPTED
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -404,7 +449,7 @@ export default function Header() {
           {/* Mercy Pot — wider card for 7 dp; tabular-nums keeps digits aligned */}
           <div
             id="header-mercy-balance"
-            className={`glass-card relative flex flex-col flex-shrink-0 hidden sm:flex ${mercyIntensityClass}
+            className={`glass-card relative flex flex-col flex-shrink-0 hidden sm:flex ${mercyIntensityClass} ${hudSscPulse ? 'ssc-hud-siphon-pulse' : ''}
               w-[128px] min-h-9 sm:w-[152px] sm:min-h-10 md:w-[172px] md:min-h-11 lg:w-[212px] lg:min-h-14 xl:w-[256px] xl:min-h-[64px] 2xl:w-[300px] 2xl:min-h-[76px]
               pl-3 pr-3 pt-2 pb-2 sm:pl-3 sm:pr-4 sm:pt-2.5 sm:pb-2 md:pl-3.5 md:pr-4 md:pt-2.5 md:pb-2.5 lg:pl-4 lg:pr-5 lg:pt-3 lg:pb-3 xl:pl-4 xl:pr-6 xl:pt-3 xl:pb-3 2xl:pl-5 2xl:pr-6 2xl:pt-3.5 2xl:pb-3.5`}
             style={{ borderRadius: 12 }}
@@ -412,23 +457,30 @@ export default function Header() {
             {sscAdToast != null && (
               <span
                 key={sscFloatKey}
-                className="ssc-mercy-float absolute top-1 right-2 z-20 font-mono text-[10px] md:text-xs font-bold tabular-nums text-emerald-300 pointer-events-none drop-shadow-[0_0_8px_rgba(0,255,128,0.85)]"
+                className="ssc-mercy-float absolute top-1 right-2 z-20 font-mono text-[10px] md:text-xs font-bold tabular-nums text-sky-300 pointer-events-none drop-shadow-[0_0_10px_rgba(56,189,248,0.85)]"
               >
-                +{sscAdToast.toFixed(3)} SSC
+                +{formatSscAdReward(sscAdToast)} SSC
               </span>
             )}
-            <div className={`flex flex-col flex-1 min-h-0 min-w-0 w-full ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
-              <div className="flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 lg:gap-2 xl:gap-2.5 2xl:gap-3 flex-1 min-h-0 min-w-0">
-                <div className="shrink-0 flex items-center">
-                  <img src={dollarIcon} alt="Mercy Pot" className="w-6 h-6 sm:w-7 sm:h-7 md:w-7 md:h-7 lg:w-8 lg:h-8 xl:w-10 xl:h-10 2xl:w-11 2xl:h-[42px] object-contain" />
+            <div className={`flex flex-col flex-1 min-h-0 min-w-0 w-full items-center ${mercyJiggle ? 'mercy-pot-jiggle-active' : ''}`}>
+              <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-1 sm:flex-row sm:gap-1.5 md:gap-2 lg:gap-2 xl:gap-2.5 2xl:gap-3">
+                <div className="flex shrink-0 items-center justify-center sm:self-center">
+                  <img src={sscLogoIcon} alt="SSC Global Mercy Pot" className="w-6 h-6 sm:w-7 sm:h-7 md:w-7 md:h-7 lg:w-8 lg:h-8 xl:w-10 xl:h-10 2xl:w-11 2xl:h-[42px] object-contain" />
                 </div>
-                <div className="leading-tight min-w-0 flex-1 overflow-hidden text-center">
-                  <div className="font-mono uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-xs leading-tight" style={{ color: '#2DE85C', fontWeight: 500, letterSpacing: '0.06em', lineHeight: 1.2 }}>GLOBAL MERCY POT</div>
-                  <div className="font-mono text-[6px] sm:text-[7px] text-white/45 leading-tight normal-case tracking-normal mb-0.5">Shared by all players</div>
+                <div className="flex min-w-0 w-full max-w-full flex-col items-center justify-center text-center sm:w-auto sm:flex-1 sm:overflow-hidden">
+                  <div
+                    className="font-mono uppercase tracking-wider text-[7px] sm:text-[8px] md:text-[8px] lg:text-[9px] xl:text-[10px] 2xl:text-xs leading-tight"
+                    style={{ color: '#7dd3fc', fontWeight: 500, letterSpacing: '0.06em', lineHeight: 1.2 }}
+                  >
+                    SSC GLOBAL MERCY POT
+                  </div>
+                  <div className="mb-0.5 max-w-full font-mono text-[8px] leading-snug text-white/60 normal-case tracking-normal sm:text-[9px] md:text-[10px] lg:text-[10px] xl:text-xs 2xl:text-sm">
+                    Shared by all players
+                  </div>
                   <div
                     className="font-extrabold font-mono tabular-nums mercy-value text-[10px] sm:text-xs md:text-xs lg:text-sm xl:text-lg 2xl:text-2xl"
-                    style={{ color: '#21AD55', textShadow: '0 0 6px rgba(0,255,0,0.5)', lineHeight: 1.2 }}
-                    title={`Global Mercy Pot total (not your balance): ${formatMercyPot(mercyDisplay)}`}
+                    style={{ color: '#38bdf8', textShadow: '0 0 8px rgba(56,189,248,0.55)', lineHeight: 1.2 }}
+                    title={`SSC Global Mercy Pot total (not your balance): ${formatMercyPot(mercyDisplay)}`}
                   >
                     {formatMercyPot(mercyDisplay)}
                   </div>
@@ -440,10 +492,10 @@ export default function Header() {
               >
                 <span className="text-white/60">{signalsDetected === 1 ? '1 Signal' : `${signalsDetected} Signals`}</span>
                 <span className="text-white/55"> = </span>
-                <span className="font-bold" style={{ color: '#21AD55', textShadow: '0 0 4px rgba(0,255,0,0.4)' }}>
+                <span className="font-bold" style={{ color: '#38bdf8', textShadow: '0 0 6px rgba(56,189,248,0.45)' }}>
                   {signalsDetected}x
                 </span>
-                <span className="text-white/60"> Global Points</span>
+                <span className="text-white/60"> SSC Global Points</span>
               </div>
             </div>
           </div>
@@ -535,7 +587,7 @@ export default function Header() {
             ref={navDropdownRef}
             id="header-nav-dropdown"
             aria-label="Site menu"
-            className="glass-strong py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-mono border border-white/10 max-h-[min(70vh,calc(100vh-5rem))] overflow-y-auto overscroll-contain"
+            className="glass-strong py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-mono border border-white/10 max-h-[min(70vh,calc(100vh-5rem))] overflow-y-auto overscroll-contain scrollbar-hide"
             style={{
               position: 'fixed',
               top: dropdownLayout.top,

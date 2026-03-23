@@ -1,9 +1,16 @@
 import { useEffect, useState, useRef } from 'react'
 import { useGameStore } from '../store/gameStore'
 import { useAuthStore } from '../store/authStore'
+import { SSC_VIDEO_AD } from '../constants/ssc'
 import { getRandomGuiltTrip } from '../data/guiltTripPool'
 import { getRandomCrashHeadline } from '../data/crashBannerPools'
-import { playAssetMp3, playBgm, ASSET } from '../utils/audio'
+import {
+  playAssetMp3,
+  playBgm,
+  ASSET,
+  BUNKER_AUDIO_VISIBLE_EVENT,
+  claimAudioResumeForOverlay,
+} from '../utils/audio'
 import badGuysImg from '../public/asset/bad_guys.jpg'
 
 /** GDD 2.7.3: Red Digital Rain behind notification — bright red, clearly visible (not too dark) */
@@ -80,6 +87,21 @@ export default function CrashScreen() {
     }
   }, [gameState, crashOverlayPhase])
 
+  // After tab returns to foreground, restart crash loop BGM (Layout stops all audio on hide).
+  useEffect(() => {
+    const onVisible = () => {
+      const inCrash = gameState === 'crashed' || gameState === 'liquidated'
+      const inMinimal = crashOverlayPhase === 'minimal'
+      if (inCrash && !inMinimal) {
+        claimAudioResumeForOverlay()
+        crashBgmStopRef.current?.()
+        crashBgmStopRef.current = playBgm(ASSET.soundtracks.horrorAtmosphere, 0.35) || null
+      }
+    }
+    window.addEventListener(BUNKER_AUDIO_VISIBLE_EVENT, onVisible)
+    return () => window.removeEventListener(BUNKER_AUDIO_VISIBLE_EVENT, onVisible)
+  }, [gameState, crashOverlayPhase])
+
   useEffect(() => {
     if (isMinimal) {
       setShowAdButton(true)
@@ -109,7 +131,7 @@ export default function CrashScreen() {
           ...(typeof data.metal === 'number' ? { metal: data.metal } : {}),
           ...(typeof data.sscEarned === 'number' ? { sscEarned: data.sscEarned } : {}),
         })
-        const adSsc = typeof data.sscFromAd === 'number' ? data.sscFromAd : 0.002
+        const adSsc = typeof data.sscFromAd === 'number' ? data.sscFromAd : SSC_VIDEO_AD
         useGameStore.getState().setSscAdToast(adSsc)
         window.setTimeout(() => useGameStore.getState().setSscAdToast(null), 6500)
       } catch {

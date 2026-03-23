@@ -392,13 +392,15 @@ export default function Terminal() {
     }) => {
       const alreadyAppliedGold = foldProcessedRef.current
       foldProcessedRef.current = true
-      // GDD 2.7.4: Snapshot fold multiplier and mercy for Success Banner / Ghost run
+      // GDD 2.7.4: Snapshot fold multiplier and SSC earned this round for Success Banner / Ghost run
       const mult = data.multiplier ?? useGameStore.getState().currentMultiplier
       useGameStore.getState().setFoldMultiplier(mult)
-      useGameStore.getState().setFoldMercyContribution(data.wager * 0.05)
-      useGameStore.getState().setFoldSscEarned(
-        typeof data.sscEarnedThisRound === 'number' ? data.sscEarnedThisRound : null
-      )
+      const sscThisRound =
+        typeof data.sscEarnedThisRound === 'number' && Number.isFinite(data.sscEarnedThisRound)
+          ? Math.max(0, data.sscEarnedThisRound)
+          : 0
+      useGameStore.getState().setFoldMercyContribution(sscThisRound)
+      if (sscThisRound > 0) useGameStore.getState().triggerSscRewardPulse()
       const u0 = useAuthStore.getState().user
       const bal = data.user_ssc_balance ?? data.sscBalance ?? data.sscEarnedTotal ?? data.metal
       if (u0 && bal != null && typeof bal === 'number') {
@@ -950,7 +952,7 @@ export default function Terminal() {
                           Siphon Payload
                         </span>
                         <span className="text-xs sm:text-sm md:text-base font-display font-semibold text-amber-400/95 tabular-nums whitespace-nowrap">
-                          Wager cap: {wagerCap} Gold
+                          Allocation Cap: {wagerCap} Gold
                         </span>
                       </div>
 
